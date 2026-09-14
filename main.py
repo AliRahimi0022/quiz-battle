@@ -1,18 +1,11 @@
 from time import perf_counter
 from rich.console import Console
 from engine import Match, Question, ROUNDS, TIME_LIMIT
-
+from storage import QuestionBank
 console = Console()
 
-question1: Question = Question("What is the capital of Japan?", ["Tokyo", "Kyoto", "Osaka", "Seoul"], "A")
-question2: Question = Question("What is the output of len('salam')?", ["3", "4", "5", "Error"], "C")
-question3: Question = Question("What is the chemical symbol for gold?", ["Ag", "Au", "Fe", "Gd"], "B")
-
-questions = [
-    question1,
-    question2,
-    question3
-]
+lquestionbank = QuestionBank()
+questions:list[Question] = lquestionbank.pick()
 
 def show_menu():
     console.print("\n⚔  Quiz Battle  ⚔", style="bold cyan")
