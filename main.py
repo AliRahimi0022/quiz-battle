@@ -1,16 +1,26 @@
 from time import perf_counter
-from rich.console import Console
+
+try:
+    from rich.console import Console
+except ModuleNotFoundError:
+    class Console:
+        def print(self, *args, **kwargs):
+            print(*args)
+
 from engine import Match, Question, ROUNDS, TIME_LIMIT
 from storage import QuestionBank
+
 console = Console()
 
 lquestionbank = QuestionBank()
-questions:list[Question] = lquestionbank.pick()
+questions: list[Question] = lquestionbank.pick()
+
 
 def show_menu():
-    console.print("\n⚔  Quiz Battle  ⚔", style="bold cyan")
+    console.print("\nQuiz Battle", style="bold cyan")
     console.print("1) New Game", style="bold green")
     console.print("2) Exit", style="bold red")
+
 
 def play_round(match: Match, round_number: int):
     question = match.start_round()
@@ -35,6 +45,7 @@ def play_round(match: Match, round_number: int):
 
     match.resolve_round()
 
+
 def play():
     match = Match("Player 1", "Player 2", questions)
 
@@ -51,7 +62,7 @@ def play():
     else:
         console.print(f"   Winner: {winner}", style="bold cyan")
 
-#
+
 while True:
     show_menu()
     choice = input("Your choice (1 or 2): ").strip()
