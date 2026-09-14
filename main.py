@@ -51,7 +51,7 @@ def play():
     else:
         console.print(f"   Winner: {winner}", style="bold cyan")
 
-
+#
 while True:
     show_menu()
     choice = input("Your choice (1 or 2): ").strip()
