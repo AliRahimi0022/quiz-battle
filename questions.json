@@ -1,0 +1,17 @@
+[
+  {
+    "question": "What is the capital of Japan?",
+    "options": ["Tokyo", "Kyoto", "Osaka", "Seoul"],
+    "correct": "A"
+  },
+  {
+    "question": "What is the output of len('salam')?",
+    "options": ["3", "4", "5", "Error"],
+    "correct": "C"
+  },
+  {
+    "question": "What is the chemical symbol for gold?",
+    "options": ["Ag", "Au", "Fe", "Gd"],
+    "correct": "B"
+  }
+]
