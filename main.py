@@ -74,3 +74,5 @@ while True:
         break
     else:
         console.print("Please enter only 1 or 2.", style="bold yellow")
+
+print("test")
