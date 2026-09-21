@@ -8,11 +8,12 @@ except ModuleNotFoundError:
             print(*args)
 
 from engine import Match, Question, ROUNDS, TIME_LIMIT
-from storage import QuestionBank
+from storage import QuestionBank, ScoreBoard
 
 console = Console()
 
 lquestionbank = QuestionBank()
+board=ScoreBoard()
 questions: list[Question] = lquestionbank.pick()
 
 
@@ -48,7 +49,7 @@ def play_round(match: Match, round_number: int):
 
 def play():
     match = Match("Player 1", "Player 2", questions)
-
+    
     for round_number in range(1, min(ROUNDS, len(questions)) + 1):
         play_round(match, round_number)
 
@@ -64,6 +65,7 @@ def play():
 
 
 while True:
+
     show_menu()
     choice = input("Your choice (1 or 2): ").strip()
 
