@@ -4,3 +4,4 @@ main2.py
 main_tkinter.py
 r.diff
 __pycache__
+.pytest_cache
