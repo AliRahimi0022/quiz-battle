@@ -1,11 +1,13 @@
+import math
 from time import perf_counter
 
-try:
-    from rich.console import Console
-except ModuleNotFoundError:
-    class Console:
-        def print(self, *args, **kwargs):
-            print(*args)
+from rich.console import Console
+# try:
+#     from rich.console import Console
+# except ModuleNotFoundError:
+#     class Console:
+#         def print(self, *args, **kwargs):
+#             print(*args)
 
 from engine import Match, Question, ROUNDS, TIME_LIMIT
 from storage import QuestionBank, ScoreBoard
@@ -16,7 +18,8 @@ lquestionbank = QuestionBank()
 board=ScoreBoard()
 questions: list[Question] = lquestionbank.pick()
 
-
+def show_leaderboard(board):
+    pass
 def show_menu():
     console.print("\nQuiz Battle", style="bold cyan")
     console.print("1) New Game", style="bold green")
@@ -49,7 +52,13 @@ def play_round(match: Match, round_number: int):
 
 def play():
     match = Match("Player 1", "Player 2", questions)
-    
+
+    board.record(
+        match.winner(),
+        match.palyers[0],match.score_of(match.palyers[0]),
+        match.palyers[1],match.score_of(match.palyers[1])
+    )
+    # show_leader_board(board)
     for round_number in range(1, min(ROUNDS, len(questions)) + 1):
         play_round(match, round_number)
 

@@ -1,5 +1,3 @@
-from storage import QUESTION_PATH
-
 
 ROUNDS = 5
 TIME_LIMIT = 30
