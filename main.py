@@ -1,6 +1,6 @@
 import math
 from time import perf_counter
-
+from app_log import AppLog
 from rich.console import Console
 # try:
 #     from rich.console import Console
@@ -72,12 +72,13 @@ def play():
     else:
         console.print(f"   Winner: {winner}", style="bold cyan")
 
-
+AppLog.setup()
+applog_get = AppLog.get("main")
 while True:
-
+    applog_get.info("game is started")
     show_menu()
     choice = input("Your choice (1 or 2): ").strip()
-
+    applog_get.info(f"user selection: {choice}")
     if choice == "1":
         play()
     elif choice == "2":
