@@ -51,7 +51,7 @@ class ScoreBoard:
         for name,points in [(player1,score1),(player2,score2)]:
             if name not in self._data:
                 self._data[name] = {"wins":0,"points":0}
-            self._data[name]["wins"] += points
+            self._data[name]["points"] += points
 
         if winner is not None:
             self._data[winner]["wins"] += 1
@@ -62,4 +62,4 @@ class ScoreBoard:
         return sorted(self._data.items(),key=wins_then_points,reverse=True)[:n]
     def _save(self) -> None:
         with open(self._path,"w",encoding="utf-8")as f:
-            json.dump(self._path,f,ensure_ascii=False,indent=2)
+            json.dump(self._data,f,ensure_ascii=False,indent=2)

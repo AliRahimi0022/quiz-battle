@@ -53,11 +53,6 @@ def play_round(match: Match, round_number: int):
 def play():
     match = Match("Player 1", "Player 2", questions)
 
-    board.record(
-        match.winner(),
-        match.palyers[0],match.score_of(match.palyers[0]),
-        match.palyers[1],match.score_of(match.palyers[1])
-    )
     # show_leader_board(board)
     for round_number in range(1, min(ROUNDS, len(questions)) + 1):
         play_round(match, round_number)
@@ -71,6 +66,12 @@ def play():
         console.print("   Result: Draw!", style="bold yellow")
     else:
         console.print(f"   Winner: {winner}", style="bold cyan")
+
+    board.record(
+        winner,
+        match.palyers[0], match.scores[match.palyers[0]],
+        match.palyers[1], match.scores[match.palyers[1]],
+    )
 
 AppLog.setup()
 applog_get = AppLog.get("main")
