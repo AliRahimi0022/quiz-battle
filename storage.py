@@ -42,7 +42,9 @@ class ScoreBoard:
 
         if self._path.exists():
             with open(self._path, encoding="utf-8") as f:
-                self._data = json.load(f)
+                contents = f.read()
+            if contents.strip():
+                self._data = json.loads(contents)
     def is_empty(self) -> bool:
         return not self._data
     def record(self,winner:str,player1,score1,player2,score2) -> None:
