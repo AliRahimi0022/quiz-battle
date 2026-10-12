@@ -2,6 +2,7 @@ import math
 from time import perf_counter
 from app_log import AppLog
 from rich.console import Console
+import traceback
 # try:
 #     from rich.console import Console
 # except ModuleNotFoundError:
@@ -89,15 +90,21 @@ AppLog.setup()
 applog_get = AppLog.get("main")
 while True:
     show_menu()
-    choice = input("Your choice (1 or 2): ").strip()
-    applog_get.info("User selected menu option: %s", choice)
-    if choice == "1":
-        applog_get.info("User started a new game")
-        play()
-    elif choice == "2":
-        applog_get.info("User exited the application")
-        console.print("Goodbye!", style="bold cyan")
-        break
-    else:
-        applog_get.info("Rejected invalid menu option: %s", choice)
-        console.print("Please enter only 1 or 2.", style="bold yellow")
+    try:
+        choice = input("Your choice (1 or 2): ").strip()
+        applog_get.info("User selected menu option: %s", choice)
+        if choice == "1":
+            applog_get.info("User started a new game")
+            play()
+        elif choice == "2":
+            applog_get.info("User exited the application")
+            console.print("Goodbye!", style="bold cyan")
+            break
+        else:
+            applog_get.info("Rejected invalid menu option: %s", choice)
+            console.print("Please enter only 1 or 2.", style="bold yellow")
+        
+    except Exception as e:
+        applog_get.info("sth went wrong")
+
+    

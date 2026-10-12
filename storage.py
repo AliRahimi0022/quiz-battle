@@ -1,18 +1,20 @@
 import json
 import random
 from pathlib import Path
-
+# from app_log import AppLog
 from engine import Question, ROUNDS
-
+# AppLog.setup()
 QUESTION_PATH = Path(__file__).with_name("questions.json")
 QUESTION_PATH = "questions.json"
 LEADERBOARD_PATH = "leaderboard.json"
 
 class QuestionBank:
     def __init__(self, path: str | Path = QUESTION_PATH) -> None:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            pass
         self._questions: list[Question] = []
         for item in data:
             question: Question = Question(
