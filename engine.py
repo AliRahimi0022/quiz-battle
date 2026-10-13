@@ -31,6 +31,7 @@ class Match:
         self.scores = {player1: 0, player2: 0}
         self.round = 0
         self.answers = {}
+        self.chat = Chat()
 
     def start_round(self):
         self.round += 1
@@ -39,6 +40,11 @@ class Match:
 
     def submit(self, player, choice, elapsed):
         self.answers[player] = (choice, elapsed)
+
+    def send_chat(self, player, message):
+        if player not in self.palyers:
+            raise ValueError(f"Unknown player: {player}")
+        return self.chat.send(player, message)
 
     def resolve_round(self):
         question = self.questions[self.round - 1]
@@ -66,3 +72,24 @@ class Match:
             return player1
         return player2
 
+
+class Chat:
+    def __init__(self):
+        self.messages = []
+
+    def send(self, player, message):
+        if player is None or str(player).strip() == "":
+            raise ValueError("Player name is required")
+
+        text = str(message).strip()
+        if text == "":
+            return ""
+
+        self.messages.append((str(player), text))
+        return text
+
+    def history(self):
+        return [f"{player}: {message}" for player, message in self.messages]
+
+    def clear(self):
+        self.messages.clear()

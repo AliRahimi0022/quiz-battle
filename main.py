@@ -28,6 +28,15 @@ def show_menu():
     console.print("2) Exit", style="bold red")
 
 
+def show_chat(match: Match, limit: int = 5):
+    if not match.chat.messages:
+        return
+
+    console.print("\nChat:", style="bold magenta")
+    for player, message in match.chat.messages[-limit:]:
+        console.print(f"  {player}: {message}", style="magenta")
+
+
 def play_round(match: Match, round_number: int):
     question = match.start_round()
     applog_get.info("Round %s started: %s", round_number, question.text)
@@ -36,9 +45,14 @@ def play_round(match: Match, round_number: int):
 
     for letter, option in zip("ABCD", question.options):
         console.print(f"  {letter}) {option}", style="bold")
-        
 
     for player in match.palyers:
+        chat_message = input(f"{player} chat (press Enter to skip): ").strip()
+        if chat_message:
+            match.send_chat(player, chat_message)
+            console.print(f"{player}: {chat_message}", style="bold magenta")
+            applog_get.info("%s sent chat message: %s", player, chat_message)
+
         start = perf_counter()
         answer = input(f"{player} answer (A-D): ").strip().upper()
         elapsed = perf_counter() - start
@@ -55,6 +69,7 @@ def play_round(match: Match, round_number: int):
             applog_get.info("%s answered incorrectly on round %s in %.2f seconds", player, round_number, elapsed)
             console.print(f"{player}: Wrong! Correct answer: {question.correct_text()}", style="bold red")
 
+    show_chat(match)
     match.resolve_round()
     applog_get.info("Round %s completed; scores: %s", round_number, match.scores)
 

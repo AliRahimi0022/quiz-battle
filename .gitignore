@@ -6,3 +6,5 @@ r.diff
 __pycache__
 .pytest_cache
 .game0/
+*.log
+quiz_game.log
