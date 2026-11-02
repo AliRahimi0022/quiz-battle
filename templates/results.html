@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Quiz Club / Final score{% endblock %}
+{% block content %}
+<section class="rise mx-auto max-w-3xl" aria-labelledby="results-title">
+  <p class="font-mono text-[11px] uppercase tracking-[.2em] text-lime">Match complete</p>
+  {% if winner %}
+    <h1 id="results-title" class="mt-4 text-5xl font-extrabold leading-tight sm:text-7xl"><span class="text-lime">{{ winner }}</span><br>takes the crown.</h1>
+  {% else %}
+    <h1 id="results-title" class="mt-4 text-5xl font-extrabold leading-tight sm:text-7xl">A perfect<br><span class="text-lime">dead heat.</span></h1>
+  {% endif %}
+  <div class="mt-10 grid grid-cols-2 border-y border-white/10">
+    {% for player in game.players %}
+      <div class="py-6 {% if not loop.first %}border-l border-white/10 pl-6 sm:pl-10{% endif %}">
+        <p class="text-sm font-bold text-muted">{{ player }}</p>
+        <p class="mt-2 font-mono text-5xl text-paper sm:text-6xl">{{ game.scores[player] }}</p>
+        <p class="mt-2 font-mono text-[10px] uppercase tracking-[.16em] text-muted">points</p>
+      </div>
+    {% endfor %}
+  </div>
+  <a href="{{ url_for('index') }}" class="group mt-8 inline-flex min-w-60 items-center justify-between rounded-md bg-lime px-5 py-4 text-sm font-extrabold text-ink transition hover:bg-paper"><span>Play again</span><span aria-hidden="true">&#8594;</span></a>
+</section>
+{% endblock %}

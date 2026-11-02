@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Quiz Club / Start a match{% endblock %}
+{% block content %}
+<div class="grid gap-14 lg:grid-cols-[1.2fr_.8fr] lg:gap-20">
+  <section class="rise pt-2" aria-labelledby="page-title">
+    <p class="mb-5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[.2em] text-lime"><span class="h-1.5 w-1.5 rounded-full bg-lime"></span> The quick-fire quiz</p>
+    <h1 id="page-title" class="max-w-2xl text-5xl font-extrabold leading-[1.02] tracking-tight sm:text-7xl">Quiz<span class="text-lime">Game</span></h1>
+    <p class="mt-6 max-w-lg text-base leading-7 text-muted">{{ round_count }} questions. Two players. Thirty seconds to make it count. Pass the screen and see who knows their stuff.</p>
+
+    <form action="{{ url_for('start_game') }}" method="post" class="mt-10 max-w-xl">
+      <label class="block max-w-sm text-xs font-bold uppercase tracking-wider text-muted">Your name
+        <input name="player_name" maxlength="24" required autocomplete="off" placeholder="Name" class="mt-2 w-full rounded-md border border-line bg-panel px-4 py-3.5 text-sm text-paper outline-none transition focus:border-lime" />
+      </label>
+      <button class="group flex w-full items-center justify-between rounded-md bg-lime px-5 py-4 text-left font-extrabold text-ink transition hover:bg-paper sm:w-auto sm:min-w-64" type="submit">
+        <span>Create invite link</span><span class="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span>
+      </button>
+    </form>
+
+    <div class="mt-12 grid max-w-xl grid-cols-3 border-y border-white/10 py-5">
+      <div><p class="font-mono text-2xl text-paper">+10</p><p class="mt-1 text-[11px] uppercase tracking-wider text-muted">Correct</p></div>
+      <div class="border-l border-white/10 pl-5"><p class="font-mono text-2xl text-lime">+3</p><p class="mt-1 text-[11px] uppercase tracking-wider text-muted">Fast bonus</p></div>
+      <div class="border-l border-white/10 pl-5"><p class="font-mono text-2xl text-paper">30s</p><p class="mt-1 text-[11px] uppercase tracking-wider text-muted">Per turn</p></div>
+    </div>
+  </section>
+
+  <aside class="rise border-t border-white/10 pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-2" style="animation-delay: .1s" aria-labelledby="scores-title">
+    <div class="flex items-end justify-between">
+      <div><p class="font-mono text-[10px] uppercase tracking-[.2em] text-muted">The regulars</p><h2 id="scores-title" class="mt-2 text-2xl font-extrabold">Hall of fame</h2></div>
+      <span class="font-mono text-xs text-lime">TOP 05</span>
+    </div>
+    {% if leaderboard %}
+      <ol class="mt-6 divide-y divide-white/10">
+        {% for name, stats in leaderboard %}
+          <li class="flex items-center gap-4 py-4">
+            <span class="w-7 font-mono text-xs text-muted">0{{ loop.index }}</span>
+            <span class="min-w-0 flex-1 truncate text-sm font-bold">{{ name }}</span>
+            <span class="font-mono text-xs text-lime">{{ stats.wins }} W</span>
+            <span class="w-14 text-right font-mono text-xs text-muted">{{ stats.points }} PTS</span>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <div class="mt-6 border-y border-white/10 py-8 text-sm leading-6 text-muted">No scores yet. The first match gets the first entry.</div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

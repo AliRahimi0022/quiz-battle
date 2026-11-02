@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Quiz Club / Match{% endblock %}
+{% block content %}
+<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+  <section class="rise min-w-0" {% if game.phase == 'lobby' %}aria-labelledby="lobby-title"{% elif game.phase == 'feedback' or your_turn %}aria-labelledby="question-title"{% else %}aria-label="Waiting for your turn"{% endif %}>
+    {% if game.phase == 'lobby' %}
+      <div class="max-w-2xl border-y border-white/10 py-8 sm:py-10">
+        <p class="font-mono text-[11px] uppercase tracking-[.2em] text-lime">Match lobby / Room {{ game.match_code }}</p>
+        <h1 id="lobby-title" class="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">Get ready to play.</h1>
+        <div class="mt-7 divide-y divide-white/10 border-y border-white/10">
+          {% for player in game.players %}
+            <div class="flex items-center justify-between gap-4 py-4">
+              <span class="font-bold">{{ player or 'Waiting for player two' }}</span>
+              {% if loop.index0 in game.joined %}<span class="font-mono text-[10px] uppercase tracking-wider text-lime">Joined</span>
+              {% else %}<span class="font-mono text-[10px] uppercase tracking-wider text-muted">Invite sent</span>{% endif %}
+              {% if loop.index0 in game.ready_players %}<span class="font-mono text-[10px] uppercase tracking-wider text-lime">Ready</span>
+              {% else %}<span class="font-mono text-[10px] uppercase tracking-wider text-muted">Not ready</span>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        {% if player_index == 0 %}
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <input id="invite-link" readonly value="{{ invite_url }}" class="min-w-0 flex-1 rounded-md border border-line bg-panel px-4 py-3 text-sm text-paper" aria-label="Player two invite link" />
+            <button id="copy-invite" type="button" class="rounded-md bg-panel px-4 py-3 text-sm font-bold text-paper ring-1 ring-line transition hover:ring-lime">Copy invite</button>
+          </div>
+        {% endif %}
+        <div class="mt-7">
+          {% if player_ready %}
+            <div class="rounded-md border border-line px-5 py-4 text-sm text-muted" role="status">You’re ready. Waiting for the other player ({{ ready_count }}/2).</div>
+          {% else %}
+            <form action="{{ url_for('player_ready') }}" method="post">
+              <button class="group flex w-full items-center justify-between rounded-md bg-lime px-5 py-4 text-left font-extrabold text-ink transition hover:bg-paper sm:w-auto sm:min-w-56" type="submit">
+                <span>I’m ready</span><span class="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+        {% if joined_count < 2 %}<p class="mt-4 text-xs text-muted">The game starts after both players join and are ready.</p>{% endif %}
+      </div>
+    {% elif game.phase == 'feedback' %}
+      <div class="mb-8 flex items-center justify-between font-mono text-[11px] uppercase tracking-[.18em] text-muted"><span>Round {{ round_number }} / {{ total_rounds }}</span><span>Round complete</span></div>
+      <p class="font-mono text-xs uppercase tracking-[.18em] text-lime">Answer reveal</p>
+      <h1 id="question-title" class="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">{{ question.text }}</h1>
+      <p class="mt-4 text-sm text-muted">Correct answer: <span class="font-bold text-lime">{{ game.correct_text }}</span></p>
+      <div class="mt-8 divide-y divide-white/10 border-y border-white/10">
+        {% for answer in game.feedback %}
+          <div class="flex flex-wrap items-center gap-3 py-4 sm:gap-5">
+            <span class="min-w-28 flex-1 font-bold">{{ answer.player }}</span>
+            <span class="font-mono text-xs text-muted">{{ answer.choice or '--' }}{% if answer.timed_out %} / TIME{% endif %}</span>
+            {% if answer.correct %}<span class="font-mono text-xs text-lime">CORRECT +{{ 13 if answer.elapsed <= 15 else 10 }}</span>
+            {% else %}<span class="font-mono text-xs text-coral">{{ 'TOO SLOW' if answer.timed_out else 'NOT THIS TIME' }}</span>{% endif %}
+            <span class="w-16 text-right font-mono text-xs text-paper">{{ game.scores[answer.player] }} PTS</span>
+          </div>
+        {% endfor %}
+      </div>
+      <form action="{{ url_for('continue_game') }}" method="post" class="mt-8">
+        {% if player_ready %}
+          <div class="rounded-md border border-line px-5 py-4 text-sm text-muted" role="status">You’re ready. Waiting for the other player ({{ ready_count }}/2).</div>
+        {% else %}
+          <button class="group flex w-full items-center justify-between rounded-md bg-lime px-5 py-4 text-left font-extrabold text-ink transition hover:bg-paper sm:w-auto sm:min-w-64" type="submit">
+            <span>{{ 'Finish match' if round_number == total_rounds else 'Next question' }}</span><span class="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span>
+          </button>
+        {% endif %}
+      </form>
+    {% else %}
+      <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div class="font-mono text-[11px] uppercase tracking-[.18em] text-muted">Question <span class="text-paper">{{ '%02d'|format(round_number) }}</span> / {{ '%02d'|format(total_rounds) }}</div>
+        <div class="flex gap-5">
+          {% for player in game.players %}<div class="text-right"><p class="font-mono text-[10px] uppercase text-muted">{{ player }}</p><p class="mt-1 text-sm font-bold">{{ game.scores[player] }} <span class="text-xs font-normal text-muted">pts</span></p></div>{% endfor %}
+        </div>
+      </div>
+      <div class="mb-8 h-1 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full bg-lime transition-all" style="width: {{ (round_number / total_rounds * 100)|round|int }}%"></div></div>
+      <div class="border-y border-white/10 py-8 sm:py-10">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="rounded-sm bg-lime px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">{{ game.players[game.active_player] }}'s turn</span>
+          {% if your_turn %}<span class="font-mono text-xs text-muted"><span id="time-remaining">{{ time_limit }}</span> SEC</span>{% endif %}
+        </div>
+        {% if your_turn %}
+          <h1 id="question-title" class="mt-6 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">{{ question.text }}</h1>
+          <form action="{{ url_for('submit_answer') }}" method="post" class="mt-8" id="answer-form">
+            <fieldset>
+              <legend class="sr-only">Choose an answer</legend>
+              <div class="grid gap-3 sm:grid-cols-2">
+                {% for option in question.options %}
+                  {% set letter = 'ABCD'[loop.index0] %}
+                  <label class="group flex min-h-16 cursor-pointer items-center gap-4 rounded-md border border-line bg-panel px-4 py-3 transition hover:border-lime/70 has-[:checked]:border-lime has-[:checked]:bg-lime/10">
+                    <input type="radio" name="choice" value="{{ letter }}" required class="sr-only" />
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded border border-line font-mono text-xs text-muted transition group-has-[:checked]:border-lime group-has-[:checked]:bg-lime group-has-[:checked]:text-ink">{{ letter }}</span>
+                    <span class="text-sm font-semibold">{{ option }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <button id="answer-submit" class="group mt-6 flex min-w-52 items-center justify-between rounded-md bg-lime px-5 py-3.5 text-left text-sm font-extrabold text-ink transition hover:bg-paper" type="submit"><span>Lock in answer</span><span aria-hidden="true">&#8594;</span></button>
+          </form>
+        {% else %}
+          <div class="mt-8 border-l-2 border-line py-2 pl-4 text-sm text-muted">Waiting for {{ game.players[game.active_player] }} to answer. You can message them while you wait.</div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="rise overflow-hidden rounded-md border border-line bg-panel" aria-labelledby="chat-title" style="animation-delay: .08s">
+    <div class="flex items-center justify-between border-b border-line px-4 py-4">
+      <div><h2 id="chat-title" class="text-sm font-extrabold">Match chat</h2><p class="mt-1 text-[10px] text-muted">{{ game.players[0] }} &middot; {{ game.players[1] or 'Waiting for player two' }}</p></div>
+      <span class="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-lime"><span class="h-1.5 w-1.5 rounded-full bg-lime"></span> Live</span>
+    </div>
+    <div id="chat-messages" class="flex h-72 flex-col gap-3 overflow-y-auto px-4 py-4" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form id="chat-form" class="flex gap-2 border-t border-line p-3">
+      <label class="sr-only" for="chat-input">Message</label>
+      <input id="chat-input" maxlength="500" autocomplete="off" placeholder="Write a message..." class="min-w-0 flex-1 rounded border border-line bg-ink px-3 py-2.5 text-xs text-paper outline-none placeholder:text-muted/60 focus:border-lime" />
+      <button type="submit" aria-label="Send message" title="Send message" class="grid h-10 w-10 shrink-0 place-items-center rounded bg-lime text-ink transition hover:bg-paper"><span aria-hidden="true">&#8594;</span></button>
+    </form>
+  </aside>
+</div>
+<script>
+  (() => {
+    const initialStateKey = {{ state_key|tojson }};
+    const playerIndex = {{ player_index }};
+    const messages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    let lastMessageId = 0;
+
+    function showMessage(message) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'max-w-[90%] rounded-md border border-line bg-ink px-3 py-2';
+      const metadata = document.createElement('p');
+      metadata.className = 'font-mono text-[9px] text-muted';
+      metadata.textContent = `${message.sender} / ${message.time}`;
+      const content = document.createElement('p');
+      content.className = 'mt-1 break-words text-xs leading-5 text-paper';
+      content.textContent = message.text;
+      wrapper.append(metadata, content);
+      messages.append(wrapper);
+      messages.scrollTop = messages.scrollHeight;
+      lastMessageId = message.id;
+    }
+
+    async function pollMessages() {
+      try {
+        const response = await fetch(`/api/chat?after=${lastMessageId}`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        payload.messages.forEach(showMessage);
+      } catch (_) {}
+    }
+
+    chatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.disabled = true;
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (response.ok) {
+          chatInput.value = '';
+          await pollMessages();
+        }
+      } finally {
+        chatInput.disabled = false;
+        chatInput.focus();
+      }
+    });
+
+    async function pollGameState() {
+      try {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (!response.ok) return;
+        const state = await response.json();
+        if (state.key !== initialStateKey) window.location.reload();
+      } catch (_) {}
+    }
+
+    pollMessages();
+    window.setInterval(pollMessages, 800);
+    window.setInterval(pollGameState, 800);
+
+    const inviteButton = document.getElementById('copy-invite');
+    if (inviteButton) {
+      inviteButton.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(document.getElementById('invite-link').value);
+        inviteButton.textContent = 'Copied';
+      });
+    }
+
+    const answerForm = document.getElementById('answer-form');
+    if (answerForm) {
+      let timeoutSubmitted = false;
+      const timerText = document.getElementById('time-remaining');
+      answerForm.addEventListener('submit', () => {
+        document.getElementById('answer-submit').disabled = true;
+      });
+      const pollClock = async () => {
+        try {
+          const response = await fetch('/api/clock', { cache: 'no-store' });
+          if (!response.ok) return;
+          const clock = await response.json();
+          if (clock.active_player !== playerIndex || clock.remaining === null) return;
+          timerText.textContent = String(Math.ceil(clock.remaining));
+          if (clock.remaining <= 0 && !timeoutSubmitted) {
+            timeoutSubmitted = true;
+            answerForm.noValidate = true;
+            answerForm.requestSubmit();
+          }
+        } catch (_) {}
+      };
+      pollClock();
+      window.setInterval(pollClock, 250);
+    }
+  })();
+</script>
+{% endblock %}

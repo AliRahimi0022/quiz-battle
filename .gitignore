@@ -6,3 +6,4 @@ __pycache__
 .game0/
 *.log
 .venv/
+leaderboard.json
