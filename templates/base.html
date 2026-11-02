@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101512">
+  <title>{% block title %}Quiz Club{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#101512', panel: '#191f1b', line: '#303a33', paper: '#f0f3e8',
+            muted: '#a3ada4', lime: '#c9f36a', coral: '#ff795f'
+          },
+          fontFamily: { sans: ['Manrope', 'sans-serif'], mono: ['DM Mono', 'monospace'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-image: radial-gradient(ellipse at 50% 0%, #243129 0, #101512 56%); }
+    .grain { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E"); }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .rise { animation: rise .45s ease-out both; }
+  </style>
+</head>
+<body class="min-h-screen bg-ink font-sans text-paper antialiased">
+  <div class="grain pointer-events-none fixed inset-0 opacity-[.12]"></div>
+  <header class="relative border-b border-white/10">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+      <a href="{{ url_for('index') }}" class="flex items-center gap-3" aria-label="Quiz Club home">
+        <span class="grid h-9 w-9 place-items-center rounded-lg bg-lime text-sm font-extrabold text-ink">Q.</span>
+        <span class="text-sm font-extrabold tracking-wide">QUIZ CLUB</span>
+      </a>
+      <span class="font-mono text-[10px] uppercase tracking-[.18em] text-muted">Local multiplayer / 02 players</span>
+    </div>
+  </header>
+  <main class="relative mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="rise mb-6 border-l-2 border-coral bg-coral/10 px-4 py-3 text-sm text-paper" role="alert">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="relative mx-auto flex max-w-6xl justify-between border-t border-white/10 px-5 py-5 font-mono text-[10px] uppercase tracking-[.15em] text-muted sm:px-8">
+    <span>Think fast. Play fair.</span><span>Quiz Club / 2026</span>
+  </footer>
+</body>
+</html>
