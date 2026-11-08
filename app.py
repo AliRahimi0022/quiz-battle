@@ -2,17 +2,19 @@ import copy
 import os
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 
-from engine import Match, Question, ROUNDS, TIME_LIMIT
-from storage import QuestionBank, ScoreBoard
+from engine import Match, POINTS, Question, ROUNDS, SPEED_BONUS, TIME_LIMIT
+from storage import AnswerStore, QuestionBank, ScoreBoard
 
 
-def create_app(test_config=None, question_path=None, leaderboard_path=None):
+def create_app(
+    test_config=None, question_path=None, leaderboard_path=None, database_path=None
+):
     app = Flask(__name__)
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("SECRET_KEY", "local-quiz-game-key-change-me"),
@@ -25,6 +27,9 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
     )
     scoreboard = ScoreBoard(
         leaderboard_path or Path(__file__).with_name("leaderboard.json")
+    )
+    answer_store = AnswerStore(
+        database_path or Path(__file__).with_name("quiz.db")
     )
     games = {}
     games_lock = RLock()
@@ -49,6 +54,36 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
             return None
         return first if first_score > second_score else second
 
+    def create_answer(game_data, match_code, player_index, choice, elapsed):
+        question_data = game_data["questions"][game_data["round_index"]]
+        question = Question(
+            question_data["text"], question_data["options"], question_data["correct"]
+        )
+        answered_at = datetime.now(timezone.utc).isoformat()
+        answer_text = (
+            question.options[ord(choice) - ord("A")] if choice is not None else None
+        )
+        correct = question.is_correct(choice) and elapsed <= TIME_LIMIT
+        score = (
+            POINTS + (SPEED_BONUS if elapsed <= TIME_LIMIT / 2 else 0)
+            if correct
+            else 0
+        )
+        answer_store.record_answer(
+            match_code,
+            game_data["players"][player_index],
+            answered_at,
+            question.text,
+            answer_text,
+            score,
+        )
+        return {
+            "player": game_data["players"][player_index],
+            "choice": choice,
+            "elapsed": elapsed,
+            "answered_at": answered_at,
+        }
+
     def resolve_round(game_data):
         question_data = game_data["questions"][game_data["round_index"]]
         question = Question(
@@ -62,16 +97,33 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
             for answer in game_data["answers"]
         }
         match.resolve_round()
+        feedback = []
+        for answer in game_data["answers"]:
+            correct = (
+                question.is_correct(answer["choice"])
+                and answer["elapsed"] <= TIME_LIMIT
+            )
+            score_earned = (
+                POINTS + (SPEED_BONUS if answer["elapsed"] <= TIME_LIMIT / 2 else 0)
+                if correct
+                else 0
+            )
+            choice = answer["choice"]
+            feedback.append(
+                {
+                    **answer,
+                    "correct": correct,
+                    "timed_out": choice is None,
+                    "answer_text": (
+                        question.options[ord(choice) - ord("A")]
+                        if choice is not None
+                        else None
+                    ),
+                    "score_earned": score_earned,
+                }
+            )
         game_data["scores"] = match.scores
-        game_data["feedback"] = [
-            {
-                **answer,
-                "correct": question.is_correct(answer["choice"])
-                and answer["elapsed"] <= TIME_LIMIT,
-                "timed_out": answer["choice"] is None,
-            }
-            for answer in game_data["answers"]
-        ]
+        game_data["feedback"] = feedback
         game_data["correct_text"] = question.correct_text()
         game_data["phase"] = "feedback"
         game_data["ready_players"] = []
@@ -83,7 +135,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
         else:
             resolve_round(game_data)
 
-    def expire_turn(game_data, now):
+    def expire_turn(game_data, now, match_code):
         if game_data["phase"] != "playing" or game_data["turn_started"] is None:
             return
         elapsed = max(0, now - game_data["turn_started"])
@@ -91,11 +143,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
             return
         player_index = game_data["active_player"]
         game_data["answers"].append(
-            {
-                "player": game_data["players"][player_index],
-                "choice": None,
-                "elapsed": elapsed,
-            }
+            create_answer(game_data, match_code, player_index, None, elapsed)
         )
         advance_turn(game_data, now)
 
@@ -243,7 +291,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
         match_code, _, _ = current_game()
         with games_lock:
             game_data = games[match_code]
-            expire_turn(game_data, time.monotonic())
+            expire_turn(game_data, time.monotonic(), match_code)
             payload = {
                 "key": state_key(game_data),
                 "phase": game_data["phase"],
@@ -264,7 +312,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
         now = time.monotonic()
         with games_lock:
             game_data = games[match_code]
-            expire_turn(game_data, now)
+            expire_turn(game_data, now, match_code)
             remaining = None
             if game_data["phase"] == "playing":
                 remaining = max(0, TIME_LIMIT - (now - game_data["turn_started"]))
@@ -290,7 +338,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
 
             elapsed = max(0, now - game_data["turn_started"])
             if elapsed >= TIME_LIMIT:
-                expire_turn(game_data, now)
+                expire_turn(game_data, now, match_code)
                 flash("Time is up.", "error")
                 return redirect(url_for("game"))
 
@@ -300,11 +348,7 @@ def create_app(test_config=None, question_path=None, leaderboard_path=None):
                 return redirect(url_for("game"))
 
             game_data["answers"].append(
-                {
-                    "player": game_data["players"][player_index],
-                    "choice": choice,
-                    "elapsed": elapsed,
-                }
+                create_answer(game_data, match_code, player_index, choice, elapsed)
             )
             advance_turn(game_data, now)
         return redirect(url_for("game"))

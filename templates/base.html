@@ -27,6 +27,20 @@
     .grain { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E"); }
     @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     .rise { animation: rise .45s ease-out both; }
+    @keyframes answer-correct {
+      0% { background-color: transparent; box-shadow: 0 0 0 0 rgb(201 243 106 / 0%); }
+      45% { background-color: rgb(201 243 106 / 10%); box-shadow: 0 0 28px 2px rgb(201 243 106 / 18%); }
+      100% { background-color: transparent; box-shadow: 0 0 0 0 rgb(201 243 106 / 0%); }
+    }
+    @keyframes correct-badge {
+      0%, 100% { transform: scale(1); }
+      45% { transform: scale(1.08); }
+    }
+    .answer-correct { animation: answer-correct .9s ease-out both; }
+    .correct-answer-badge { animation: correct-badge .9s ease-out both; }
+    @media (prefers-reduced-motion: reduce) {
+      .answer-correct, .correct-answer-badge { animation: none; }
+    }
   </style>
 </head>
 <body class="min-h-screen bg-ink font-sans text-paper antialiased">
