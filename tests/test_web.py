@@ -1,3 +1,6 @@
+from datetime import datetime
+import sqlite3
+
 import pytest
 from markupsafe import escape
 
@@ -8,6 +11,7 @@ def make_client(tmp_path):
     app = create_app(
         {"TESTING": True, "SECRET_KEY": "test-secret"},
         leaderboard_path=tmp_path / "leaderboard.json",
+        database_path=tmp_path / "answers.sqlite3",
     )
     return app.test_client()
 
@@ -16,6 +20,7 @@ def make_lobby(tmp_path, host_name="Ada", guest_name="Lin"):
     app = create_app(
         {"TESTING": True, "SECRET_KEY": "test-secret"},
         leaderboard_path=tmp_path / "leaderboard.json",
+        database_path=tmp_path / "answers.sqlite3",
     )
     host = app.test_client()
     guest = app.test_client()
@@ -153,6 +158,7 @@ def test_server_clock_tracks_elapsed_and_expires_turn(tmp_path, monkeypatch):
     assert guest.get("/api/clock").get_json()["remaining"] == 30
 
     now[0] += 31
+    guest.post("/answer", data={"choice": "A"})
     state = guest.get("/api/state").get_json()
 
     assert state["phase"] == "feedback"
@@ -160,3 +166,50 @@ def test_server_clock_tracks_elapsed_and_expires_turn(tmp_path, monkeypatch):
     assert state["feedback"][1]["elapsed"] == pytest.approx(31)
     assert state["feedback"][1]["timed_out"] is True
     assert state["feedback"][1]["choice"] is None
+    with sqlite3.connect(tmp_path / "answers.sqlite3") as connection:
+        timeout_answer = connection.execute(
+            "SELECT player, answer, score FROM answers WHERE player = 'Lin'"
+        ).fetchone()
+    assert timeout_answer == ("Lin", None, 0)
+
+
+def test_answers_are_persisted_with_player_time_question_answer_and_score(
+    tmp_path, monkeypatch
+):
+    now = [100.0]
+    monkeypatch.setattr("app.time.monotonic", lambda: now[0])
+    host, guest = make_two_players(tmp_path)
+    with host.session_transaction() as browser_session:
+        match_code = browser_session["match_code"]
+    game_data = host.application.extensions["quiz_games"][match_code]
+    question = game_data["questions"][0]
+    correct_choice = question["correct"]
+    wrong_choice = "A" if correct_choice != "A" else "B"
+
+    host.post("/answer", data={"choice": correct_choice})
+    guest.post("/answer", data={"choice": wrong_choice})
+
+    feedback = host.get("/api/state").get_json()["feedback"]
+    assert feedback[0]["score_earned"] == 13
+    assert feedback[1]["score_earned"] == 0
+    reveal = host.get("/game").data
+    assert b"answer-correct" in reveal
+    assert b"correct-answer-badge" in reveal
+
+    with sqlite3.connect(tmp_path / "answers.sqlite3") as connection:
+        rows = connection.execute(
+            """
+            SELECT match_code, player, answered_at, question, answer, score
+            FROM answers ORDER BY id
+            """
+        ).fetchall()
+
+    assert [row[0] for row in rows] == [match_code, match_code]
+    assert [row[1] for row in rows] == ["Ada", "Lin"]
+    assert [row[3] for row in rows] == [question["text"], question["text"]]
+    assert [row[4] for row in rows] == [
+        question["options"][ord(correct_choice) - ord("A")],
+        question["options"][ord(wrong_choice) - ord("A")],
+    ]
+    assert [row[5] for row in rows] == [13, 0]
+    assert all(datetime.fromisoformat(row[2]).utcoffset() is not None for row in rows)

@@ -1,5 +1,6 @@
 import json
 import random
+import sqlite3
 from pathlib import Path
 # from app_log import AppLog
 from engine import Question, ROUNDS
@@ -8,6 +9,47 @@ QUESTION_PATH = Path(__file__).with_name("questions.json")
 QUESTION_PATH = "questions.json"
 LEADERBOARD_PATH = "leaderboard.json"
 # uiyuykytj
+
+
+class AnswerStore:
+    def __init__(self, path: str | Path = "quiz.db") -> None:
+        self._path = Path(path)
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(self._path) as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS answers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    match_code TEXT NOT NULL,
+                    player TEXT NOT NULL,
+                    answered_at TEXT NOT NULL,
+                    question TEXT NOT NULL,
+                    answer TEXT,
+                    score INTEGER NOT NULL
+                )
+                """
+            )
+
+    def record_answer(
+        self,
+        match_code: str,
+        player: str,
+        answered_at: str,
+        question: str,
+        answer: str | None,
+        score: int,
+    ) -> None:
+        with sqlite3.connect(self._path) as connection:
+            connection.execute(
+                """
+                INSERT INTO answers (
+                    match_code, player, answered_at, question, answer, score
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (match_code, player, answered_at, question, answer, score),
+            )
+
+
 class QuestionBank:
     def __init__(self, path: str | Path = QUESTION_PATH) -> None:
         try:
