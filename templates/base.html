@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101512">
+  <meta name="theme-color" content="#10131b">
   <title>{% block title %}Quiz Club{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
       theme: {
         extend: {
           colors: {
-            ink: '#101512', panel: '#191f1b', line: '#303a33', paper: '#f0f3e8',
+            ink: '#10131b', panel: '#191d28', line: '#353b49', paper: '#f2f3f8',
             muted: '#a3ada4', lime: '#c9f36a', coral: '#ff795f'
           },
           fontFamily: { sans: ['Manrope', 'sans-serif'], mono: ['DM Mono', 'monospace'] }
@@ -23,10 +23,146 @@
     }
   </script>
   <style>
-    body { background-image: radial-gradient(ellipse at 50% 0%, #243129 0, #101512 56%); }
-    .grain { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E"); }
-    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    .rise { animation: rise .45s ease-out both; }
+    :root {
+      color-scheme: dark;
+      --ink: #10131b;
+      --panel: #191d28;
+      --panel-raised: #202636;
+      --line: rgb(231 235 255 / 12%);
+      --lime: #d3f27a;
+      --paper: #f2f3f8;
+      --muted: #a4a9b8;
+      --coral: #ff806b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background:
+        radial-gradient(ellipse at 78% 4%, rgb(125 145 220 / 13%), transparent 30rem),
+        radial-gradient(ellipse at 14% 42%, rgb(80 72 135 / 14%), transparent 36rem),
+        var(--ink);
+    }
+    ::selection { background: var(--lime); color: var(--ink); }
+    :focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+    .grain {
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E");
+      z-index: 0;
+    }
+    .site-header { border-color: var(--line); background: rgb(16 19 15 / 55%); backdrop-filter: blur(18px); }
+    .brand-mark {
+      display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: .85rem;
+      background: var(--lime); color: var(--ink); box-shadow: 0 0 28px rgb(211 242 122 / 20%);
+      font-size: .8rem; font-weight: 900; letter-spacing: -.08em;
+    }
+    .site-main { min-height: calc(100vh - 10.5rem); }
+    .site-footer { color: #788172; border-color: var(--line); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: .55rem; color: var(--lime);
+      font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { width: .42rem; height: .42rem; border-radius: 50%; background: var(--lime); content: ''; box-shadow: 0 0 14px rgb(211 242 122 / 70%); }
+    .surface {
+      border: 1px solid var(--line); border-radius: 1.15rem; background: linear-gradient(145deg, rgb(29 36 27 / 94%), rgb(21 26 21 / 96%));
+      box-shadow: 0 22px 65px rgb(0 0 0 / 19%), inset 0 1px rgb(255 255 255 / 3%);
+    }
+    .surface-soft { border: 1px solid var(--line); border-radius: .85rem; background: rgb(255 255 255 / 2.4%); }
+    .action-button {
+      min-height: 3.25rem; border-radius: .72rem; background: var(--lime); color: var(--ink);
+      box-shadow: 0 8px 26px rgb(211 242 122 / 12%); transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+    .action-button:hover { transform: translateY(-2px); background: #e2ff9a; box-shadow: 0 12px 32px rgb(211 242 122 / 20%); }
+    .text-input {
+      min-height: 3.25rem; border: 1px solid var(--line); border-radius: .72rem; background: rgb(8 10 8 / 42%);
+      color: var(--paper); transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .text-input:focus { border-color: rgb(211 242 122 / 65%); box-shadow: 0 0 0 3px rgb(211 242 122 / 9%); outline: none; }
+    .rise { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .hero-title { font-size: clamp(3.75rem, 9.5vw, 7.7rem); letter-spacing: -.09em; line-height: .88; }
+    .hero-orb {
+      position: absolute; right: 3%; top: -4rem; width: min(27vw, 21rem); aspect-ratio: 1; border: 1px solid rgb(211 242 122 / 10%);
+      border-radius: 50%; background: radial-gradient(circle at 38% 38%, rgb(211 242 122 / 17%), rgb(211 242 122 / 2%) 42%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-orb::before, .hero-orb::after { position: absolute; inset: 12%; border: 1px solid rgb(211 242 122 / 10%); border-radius: 50%; content: ''; }
+    .hero-orb::after { inset: 25%; }
+    .stat-card { min-width: 0; border: 1px solid var(--line); border-radius: .85rem; background: rgb(255 255 255 / 2.5%); padding: 1rem 1.1rem; }
+    .leader-row + .leader-row { border-top: 1px solid var(--line); }
+    .leader-rank { display: grid; width: 2rem; height: 2rem; flex: none; place-items: center; border: 1px solid var(--line); border-radius: .65rem; color: var(--muted); font: .7rem 'DM Mono', monospace; }
+    .leader-row:first-child .leader-rank { border-color: rgb(211 242 122 / 28%); background: rgb(211 242 122 / 10%); color: var(--lime); }
+    .flash-error { border: 1px solid rgb(255 128 107 / 22%); border-radius: .8rem; background: rgb(255 128 107 / 8%); color: var(--paper); }
+    .game-card { border: 1px solid var(--line); border-radius: 1.15rem; background: linear-gradient(145deg, rgb(29 36 27 / 96%), rgb(20 24 20 / 98%)); box-shadow: 0 22px 65px rgb(0 0 0 / 18%); }
+    .option-card { border: 1px solid var(--line); border-radius: .85rem; background: rgb(255 255 255 / 2.5%); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .option-card:hover { transform: translateY(-2px); border-color: rgb(211 242 122 / 50%); background: rgb(211 242 122 / 5%); }
+    .option-card:has(:checked) { border-color: var(--lime); background: rgb(211 242 122 / 9%); box-shadow: 0 0 0 1px rgb(211 242 122 / 14%); }
+    .option-card:has(:focus-visible) { outline: 2px solid var(--lime); outline-offset: 3px; }
+    .score-chip { min-width: 4.5rem; border: 1px solid var(--line); border-radius: .7rem; background: rgb(255 255 255 / 3%); padding: .5rem .7rem; text-align: center; }
+    .chat-shell { border: 1px solid var(--line); border-radius: 1.15rem; background: rgb(24 29 23 / 84%); box-shadow: 0 18px 50px rgb(0 0 0 / 16%); }
+    .chat-bubble { align-self: flex-start; max-width: 92%; border: 1px solid var(--line); border-radius: .8rem .8rem .8rem .2rem; background: rgb(8 10 8 / 38%); padding: .65rem .8rem; }
+    .lobby-player { border: 1px solid var(--line); border-radius: .8rem; background: rgb(255 255 255 / 2%); padding: 1rem; }
+    .result-score { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 1rem; background: linear-gradient(145deg, rgb(255 255 255 / 4%), rgb(255 255 255 / 1%)); padding: clamp(1.25rem, 4vw, 2rem); }
+    .result-score.winner-score { border-color: rgb(211 242 122 / 38%); background: linear-gradient(145deg, rgb(211 242 122 / 12%), rgb(255 255 255 / 2%)); }
+    body::before {
+      position: fixed; z-index: 0; inset: -20%;
+      background:
+        radial-gradient(ellipse at 75% 17%, rgb(148 176 255 / 12%), transparent 26rem),
+        radial-gradient(ellipse at 18% 53%, rgb(172 145 255 / 8%), transparent 28rem),
+        radial-gradient(ellipse at 62% 88%, rgb(211 242 122 / 7%), transparent 30rem);
+      content: '';
+      pointer-events: none;
+    }
+    .site-header { background: rgb(20 23 30 / 48%); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); }
+    .brand-mark {
+      border: 1px solid rgb(255 255 255 / 38%);
+      background: linear-gradient(145deg, rgb(239 255 191 / 96%), rgb(180 218 101 / 88%));
+      box-shadow: inset 0 1px rgb(255 255 255 / 75%), 0 0 30px rgb(211 242 122 / 22%);
+    }
+    .surface, .surface-soft, .game-card, .chat-shell, .stat-card, .lobby-player, .score-chip, .result-score {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border-color: rgb(255 255 255 / 13%);
+      background-color: rgb(255 255 255 / 5%);
+      background-image: linear-gradient(135deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 2%) 42%, rgb(255 255 255 / 3%));
+      box-shadow: inset 0 1px rgb(255 255 255 / 13%), inset 0 -1px rgb(255 255 255 / 3%), 0 18px 55px rgb(0 0 0 / 20%);
+      backdrop-filter: blur(26px) saturate(165%);
+      -webkit-backdrop-filter: blur(26px) saturate(165%);
+    }
+    .surface::before, .surface-soft::before, .game-card::before, .chat-shell::before, .stat-card::before, .lobby-player::before, .score-chip::before, .result-score::before {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(118deg, rgb(255 255 255 / 10%), transparent 27%, transparent 72%, rgb(255 255 255 / 3%));
+      content: '';
+      pointer-events: none;
+    }
+    .surface { border-radius: 1.5rem; background-color: rgb(25 30 39 / 54%); box-shadow: inset 0 1px rgb(255 255 255 / 17%), inset 0 -1px rgb(255 255 255 / 4%), 0 28px 80px rgb(0 0 0 / 27%); }
+    .surface-soft, .stat-card, .lobby-player, .score-chip, .result-score { border-radius: 1.1rem; background-color: rgb(255 255 255 / 4%); }
+    .game-card { border-radius: 1.5rem; background-color: rgb(25 30 39 / 58%); box-shadow: inset 0 1px rgb(255 255 255 / 15%), 0 28px 80px rgb(0 0 0 / 25%); }
+    .chat-shell { border-radius: 1.5rem; background-color: rgb(25 30 39 / 48%); }
+    .chat-bubble { border-color: rgb(255 255 255 / 12%); border-radius: 1rem 1rem 1rem .35rem; background: linear-gradient(145deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 3%)); box-shadow: inset 0 1px rgb(255 255 255 / 7%); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+    .action-button {
+      border: 1px solid rgb(255 255 255 / 45%);
+      border-radius: 999px;
+      background: linear-gradient(145deg, #e6ffad, #c8ec70);
+      box-shadow: inset 0 1px rgb(255 255 255 / 80%), 0 8px 26px rgb(190 224 112 / 20%);
+    }
+    .action-button:hover { background: linear-gradient(145deg, #f0ffd0, #d9f59a); box-shadow: inset 0 1px rgb(255 255 255 / 90%), 0 12px 32px rgb(190 224 112 / 27%); }
+    .action-button:active { transform: scale(.98); }
+    .text-input { border-color: rgb(255 255 255 / 13%); border-radius: 1rem; background: rgb(9 12 18 / 32%); box-shadow: inset 0 1px rgb(255 255 255 / 5%); }
+    .text-input:focus { border-color: rgb(211 242 122 / 58%); background: rgb(9 12 18 / 45%); }
+    .option-card { border-color: rgb(255 255 255 / 12%); border-radius: 1.1rem; background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)); box-shadow: inset 0 1px rgb(255 255 255 / 7%); backdrop-filter: blur(20px) saturate(145%); -webkit-backdrop-filter: blur(20px) saturate(145%); }
+    .option-card:hover { border-color: rgb(211 242 122 / 45%); background: linear-gradient(145deg, rgb(211 242 122 / 11%), rgb(255 255 255 / 3%)); }
+    .option-card:has(:checked) { border-color: rgb(211 242 122 / 78%); background: linear-gradient(145deg, rgb(211 242 122 / 17%), rgb(211 242 122 / 6%)); box-shadow: inset 0 1px rgb(255 255 255 / 16%), 0 0 25px rgb(211 242 122 / 8%); }
+    .hero-orb { border-color: rgb(255 255 255 / 12%); background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 15%), rgb(173 191 255 / 8%) 28%, rgb(211 242 122 / 5%) 49%, transparent 72%); box-shadow: inset 0 0 40px rgb(255 255 255 / 5%), 0 0 90px rgb(140 154 255 / 6%); }
+    .hero-orb::before, .hero-orb::after { border-color: rgb(255 255 255 / 10%); }
+    .leader-row + .leader-row { border-color: rgb(255 255 255 / 9%); }
+    .flash-error { border-color: rgb(255 128 107 / 30%); background: rgb(255 128 107 / 11%); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .surface, .game-card, .chat-shell { background-color: rgb(25 30 39 / 96%); }
+      .surface-soft, .stat-card, .lobby-player, .score-chip, .result-score { background-color: rgb(38 43 54 / 96%); }
+    }
     @keyframes answer-correct {
       0% { background-color: transparent; box-shadow: 0 0 0 0 rgb(201 243 106 / 0%); }
       45% { background-color: rgb(201 243 106 / 10%); box-shadow: 0 0 28px 2px rgb(201 243 106 / 18%); }
@@ -39,31 +175,34 @@
     .answer-correct { animation: answer-correct .9s ease-out both; }
     .correct-answer-badge { animation: correct-badge .9s ease-out both; }
     @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
       .answer-correct, .correct-answer-badge { animation: none; }
+    }
+    @media (max-width: 640px) {
+      .hero-orb { top: -2rem; right: 0; width: 11rem; opacity: .7; }
+      .site-footer { gap: .75rem; flex-wrap: wrap; }
     }
   </style>
 </head>
 <body class="min-h-screen bg-ink font-sans text-paper antialiased">
-  <div class="grain pointer-events-none fixed inset-0 opacity-[.12]"></div>
-  <header class="relative border-b border-white/10">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+  <div class="grain pointer-events-none fixed inset-0 opacity-[.1]"></div>
+  <header class="site-header relative z-10 border-b">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
       <a href="{{ url_for('index') }}" class="flex items-center gap-3" aria-label="Quiz Club home">
-        <span class="grid h-9 w-9 place-items-center rounded-lg bg-lime text-sm font-extrabold text-ink">Q.</span>
-        <span class="text-sm font-extrabold tracking-wide">QUIZ CLUB</span>
+        <span class="brand-mark">Q.</span>
+        <span><span class="block text-sm font-extrabold tracking-[.13em]">QUIZ CLUB</span><span class="mt-0.5 block font-mono text-[9px] uppercase tracking-[.17em] text-muted">Think fast. Play fair.</span></span>
       </a>
-      <span class="font-mono text-[10px] uppercase tracking-[.18em] text-muted">Local multiplayer / 02 players</span>
+      <span class="surface-soft inline-flex items-center gap-2 rounded-full px-3 py-2 font-mono text-[9px] uppercase tracking-[.13em] text-muted sm:px-4 sm:text-[10px]"><span class="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_#d3f27a]"></span><span class="hidden min-[380px]:inline">Local multiplayer</span><span class="min-[380px]:hidden">2 players</span><span class="hidden min-[380px]:inline">/ 02 players</span></span>
     </div>
   </header>
-  <main class="relative mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="rise mb-6 border-l-2 border-coral bg-coral/10 px-4 py-3 text-sm text-paper" role="alert">{{ message }}</div>
-      {% endfor %}
-    {% endwith %}
+  <main class="site-main relative z-[1] mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+    {% for category, message in messages %}
+      <div class="flash-error rise mb-6 px-4 py-3 text-sm" role="alert">{{ message }}</div>
+    {% endfor %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="relative mx-auto flex max-w-6xl justify-between border-t border-white/10 px-5 py-5 font-mono text-[10px] uppercase tracking-[.15em] text-muted sm:px-8">
-    <span>Think fast. Play fair.</span><span>Quiz Club / 2026</span>
+  <footer class="site-footer relative z-[1] mx-auto flex max-w-6xl justify-between border-t px-5 py-5 font-mono text-[10px] uppercase tracking-[.15em] sm:px-8">
+    <span>Built for friendly rivalry.</span><span>Quiz Club <span class="px-1 text-lime/50">/</span> 2026</span>
   </footer>
 </body>
 </html>
