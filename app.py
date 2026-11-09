@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import secrets
 import time
@@ -14,14 +15,25 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from engine import Match, POINTS, Question, ROUNDS, SPEED_BONUS, TIME_LIMIT
+from question_generation import (
+    GEMINI_MODEL,
+    QuestionGenerationError,
+    generate_questions,
+)
 from storage import AnswerStore, QuestionBank, ScoreBoard
 
 
 def create_app(
-    test_config=None, question_path=None, leaderboard_path=None, database_path=None
+    test_config=None,
+    question_path=None,
+    leaderboard_path=None,
+    database_path=None,
+    question_generator=None,
 ):
     config = {
         "SECRET_KEY": os.environ.get("SECRET_KEY", "local-quiz-game-key-change-me"),
+        "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY"),
+        "GEMINI_MODEL": os.environ.get("GEMINI_MODEL", GEMINI_MODEL),
         "TESTING": False,
     }
     if test_config:
@@ -41,6 +53,7 @@ def create_app(
         leaderboard_path or Path(__file__).with_name("leaderboard.json")
     )
     answer_store = AnswerStore(database_path or Path(__file__).with_name("quiz.db"))
+    question_generator = question_generator or generate_questions
     games = {}
     games_lock = RLock()
     app.state.quiz_games = games
@@ -206,7 +219,20 @@ def create_app(
             flash(request, "Add your name to create a room.", "error")
             return redirect_to(request, "index")
 
-        questions = question_bank.pick(ROUNDS)
+        api_key = config["GEMINI_API_KEY"]
+        if api_key:
+            try:
+                questions = await question_generator(
+                    api_key, count=ROUNDS, model=config["GEMINI_MODEL"]
+                )
+            except QuestionGenerationError as error:
+                logging.getLogger(__name__).warning(
+                    "Gemini question generation failed; using local questions: %s",
+                    error,
+                )
+                questions = question_bank.pick(ROUNDS)
+        else:
+            questions = question_bank.pick(ROUNDS)
         if not questions:
             flash(request, "There are no questions available right now.", "error")
             return redirect_to(request, "index")

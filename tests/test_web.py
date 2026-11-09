@@ -6,11 +6,13 @@ import pytest
 from markupsafe import escape
 
 from app import create_app
+from engine import Question as QuestionData
+from question_generation import QuestionGenerationError
 
 
 def make_client(tmp_path):
     app = create_app(
-        {"TESTING": True, "SECRET_KEY": "test-secret"},
+        {"TESTING": True, "SECRET_KEY": "test-secret", "GEMINI_API_KEY": ""},
         leaderboard_path=tmp_path / "leaderboard.json",
         database_path=tmp_path / "answers.sqlite3",
     )
@@ -19,7 +21,7 @@ def make_client(tmp_path):
 
 def make_lobby(tmp_path, host_name="Ada", guest_name="Lin"):
     app = create_app(
-        {"TESTING": True, "SECRET_KEY": "test-secret"},
+        {"TESTING": True, "SECRET_KEY": "test-secret", "GEMINI_API_KEY": ""},
         leaderboard_path=tmp_path / "leaderboard.json",
         database_path=tmp_path / "answers.sqlite3",
     )
@@ -44,7 +46,7 @@ def test_home_page_and_duplicate_names(tmp_path):
 
     home = client.get("/")
     assert home.status_code == 200
-    assert b"3 questions" in home.content
+    assert b"5 questions" in home.content
     assert b'name="player_name"' in home.content
     assert b'name="player2"' not in home.content
     invalid_start = client.post("/start", data={"player_name": " "})
@@ -59,6 +61,63 @@ def test_home_page_and_duplicate_names(tmp_path):
 
     assert duplicate.status_code == 400
     assert b"Choose a name different" in duplicate.content
+
+
+def test_new_room_uses_gemini_generated_questions(tmp_path):
+    generated = [
+        QuestionData("Generated question", ["One", "Two", "Three", "Four"], "A")
+        for _ in range(5)
+    ]
+    calls = []
+
+    async def generate(api_key, *, count, model):
+        calls.append((api_key, count, model))
+        return generated
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "GEMINI_API_KEY": "test-gemini-key",
+            "GEMINI_MODEL": "gemini-test-model",
+        },
+        leaderboard_path=tmp_path / "leaderboard.json",
+        database_path=tmp_path / "answers.sqlite3",
+        question_generator=generate,
+    )
+    client = TestClient(app, follow_redirects=False)
+
+    response = client.post("/start", data={"player_name": "Ada"})
+
+    assert response.status_code == 302
+    match_code = next(iter(app.state.quiz_games))
+    questions = app.state.quiz_games[match_code]["questions"]
+    assert len(questions) == 5
+    assert all(question["text"] == "Generated question" for question in questions)
+    assert calls == [("test-gemini-key", 5, "gemini-test-model")]
+
+
+def test_new_room_falls_back_to_local_questions_when_gemini_fails(tmp_path):
+    async def fail_generation(api_key, *, count, model):
+        raise QuestionGenerationError("test failure")
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "GEMINI_API_KEY": "test-gemini-key",
+        },
+        leaderboard_path=tmp_path / "leaderboard.json",
+        database_path=tmp_path / "answers.sqlite3",
+        question_generator=fail_generation,
+    )
+    client = TestClient(app, follow_redirects=False)
+
+    response = client.post("/start", data={"player_name": "Ada"})
+
+    assert response.status_code == 302
+    match_code = next(iter(app.state.quiz_games))
+    assert len(app.state.quiz_games[match_code]["questions"]) == 5
 
 
 def test_game_starts_only_after_both_players_are_ready(tmp_path):
@@ -87,7 +146,7 @@ def test_match_can_be_played_to_results(tmp_path):
     host, guest = make_two_players(tmp_path)
     match_code = next(iter(host.app.state.quiz_games))
 
-    for round_number in range(3):
+    for round_number in range(5):
         host_page = host.get("/game").content
         guest_page = guest.get("/game").content
         game_data = host.app.state.quiz_games[match_code]
@@ -117,7 +176,7 @@ def test_match_can_be_played_to_results(tmp_path):
         assert host.get("/api/state").json()["ready_players"] == [0]
         guest.post("/continue")
         state = host.get("/api/state").json()
-        if round_number < 2:
+        if round_number < 4:
             assert state["phase"] == "playing"
         else:
             assert state["phase"] == "done"
