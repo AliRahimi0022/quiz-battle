@@ -13,5 +13,15 @@
     "question": "What is the chemical symbol for gold?",
     "options": ["Ag", "Au", "Fe", "Gd"],
     "correct": "B"
+  },
+  {
+    "question": "Which planet is known as the Red Planet?",
+    "options": ["Venus", "Mars", "Jupiter", "Mercury"],
+    "correct": "B"
+  },
+  {
+    "question": "How many sides does a hexagon have?",
+    "options": ["Five", "Six", "Seven", "Eight"],
+    "correct": "B"
   }
 ]

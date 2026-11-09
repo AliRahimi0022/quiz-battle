@@ -14,6 +14,7 @@ A two-player quiz you run locally. One person creates a room, shares the invite 
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+export GEMINI_API_KEY="your-google-ai-studio-key"
 python app.py
 ```
 
@@ -24,6 +25,8 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
 | `HOST` | `127.0.0.1` | Bind address |
 | `PORT` | `5000` | Bind port |
 | `SECRET_KEY` | a local development value | Signs the session cookie. Set this before sharing the server. |
+| `GEMINI_API_KEY` | unset | Optional Google Gemini API key. When set, each new room gets five generated questions; otherwise the local question bank is used. |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Gemini model used to generate questions |
 | `APP_DEBUG` | unset | Set to `1` to reload on code changes |
 
 ## Play
@@ -37,7 +40,7 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
 Wins and total points are kept in the hall of fame on the home page. Wins rank first, then points.
 
-The question bank has fewer items than the configured round count, so a match uses every question in `questions.json`.
+With `GEMINI_API_KEY` configured, each new room requests five fresh English questions from Gemini. If the key is missing or the API request fails, the five local questions in `questions.json` are used instead.
 
 ## Layout
 
