@@ -1,35 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Quiz Club / Match{% endblock %}
 {% block content %}
-<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-  <section class="rise min-w-0" {% if game.phase == 'lobby' %}aria-labelledby="lobby-title"{% elif game.phase == 'feedback' or your_turn %}aria-labelledby="question-title"{% else %}aria-label="Waiting for your turn"{% endif %}>
+<div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-6">
+  <section class="rise game-card min-w-0 p-5 sm:p-8 lg:p-9" {% if game.phase == 'lobby' %}aria-labelledby="lobby-title"{% elif game.phase == 'feedback' or your_turn %}aria-labelledby="question-title"{% else %}aria-label="Waiting for your turn"{% endif %}>
     {% if game.phase == 'lobby' %}
-      <div class="max-w-2xl border-y border-white/10 py-8 sm:py-10">
-        <p class="font-mono text-[11px] uppercase tracking-[.2em] text-lime">Match lobby / Room {{ game.match_code }}</p>
-        <h1 id="lobby-title" class="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">Get ready to play.</h1>
-        <div class="mt-7 divide-y divide-white/10 border-y border-white/10">
+      <div class="max-w-3xl py-2 sm:py-3">
+        <p class="eyebrow">Match lobby <span class="text-muted/60">/</span> Room {{ game.match_code }}</p>
+        <h1 id="lobby-title" class="mt-5 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">Get ready to play.</h1>
+        <p class="mt-3 max-w-lg text-sm leading-6 text-muted">The room is set. Get comfortable, then ready up when you’re good to go.</p>
+        <div class="mt-7 grid gap-3 sm:grid-cols-2">
           {% for player in game.players %}
-            <div class="flex items-center justify-between gap-4 py-4">
-              <span class="font-bold">{{ player or 'Waiting for player two' }}</span>
-              {% if loop.index0 in game.joined %}<span class="font-mono text-[10px] uppercase tracking-wider text-lime">Joined</span>
-              {% else %}<span class="font-mono text-[10px] uppercase tracking-wider text-muted">Invite sent</span>{% endif %}
-              {% if loop.index0 in game.ready_players %}<span class="font-mono text-[10px] uppercase tracking-wider text-lime">Ready</span>
-              {% else %}<span class="font-mono text-[10px] uppercase tracking-wider text-muted">Not ready</span>{% endif %}
+            <div class="lobby-player">
+              <div class="flex items-center justify-between gap-3">
+                <span class="grid h-9 w-9 place-items-center rounded-lg bg-white/[.04] font-mono text-xs text-lime">0{{ loop.index }}</span>
+                {% if loop.index0 in game.joined %}<span class="rounded-full border border-lime/20 bg-lime/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-lime">Joined</span>
+                {% else %}<span class="rounded-full border border-white/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">Invite sent</span>{% endif %}
+              </div>
+              <p class="mt-4 truncate text-sm font-bold">{{ player or 'Waiting for player two' }}</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[.14em] {% if loop.index0 in game.ready_players %}text-lime{% else %}text-muted{% endif %}">{{ 'Ready to play' if loop.index0 in game.ready_players else 'Waiting to ready up' }}</p>
             </div>
           {% endfor %}
         </div>
         {% if player_index == 0 %}
-          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-            <input id="invite-link" readonly value="{{ invite_url }}" class="min-w-0 flex-1 rounded-md border border-line bg-panel px-4 py-3 text-sm text-paper" aria-label="Player two invite link" />
-            <button id="copy-invite" type="button" class="rounded-md bg-panel px-4 py-3 text-sm font-bold text-paper ring-1 ring-line transition hover:ring-lime">Copy invite</button>
+          <div class="surface-soft mt-5 flex flex-col gap-2 p-2 sm:flex-row">
+            <input id="invite-link" readonly value="{{ invite_url }}" class="text-input min-w-0 flex-1 border-0 bg-transparent px-3 py-2.5 text-xs" aria-label="Player two invite link" />
+            <button id="copy-invite" type="button" class="rounded-lg border border-white/10 bg-white/[.04] px-4 py-3 text-xs font-bold transition hover:border-lime/40 hover:text-lime">Copy invite</button>
           </div>
         {% endif %}
         <div class="mt-7">
           {% if player_ready %}
-            <div class="rounded-md border border-line px-5 py-4 text-sm text-muted" role="status">You’re ready. Waiting for the other player ({{ ready_count }}/2).</div>
+            <div class="surface-soft flex items-center gap-3 px-4 py-4 text-sm text-muted" role="status"><span class="h-2 w-2 rounded-full bg-lime shadow-[0_0_12px_#d3f27a]"></span><span>You’re ready. Waiting for the other player ({{ ready_count }}/2).</span></div>
           {% else %}
             <form action="{{ url_for('player_ready') }}" method="post">
-              <button class="group flex w-full items-center justify-between rounded-md bg-lime px-5 py-4 text-left font-extrabold text-ink transition hover:bg-paper sm:w-auto sm:min-w-56" type="submit">
+              <button class="action-button group flex w-full items-center justify-between px-5 py-4 text-left font-extrabold sm:w-auto sm:min-w-56" type="submit">
                 <span>I’m ready</span><span class="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span>
               </button>
             </form>
@@ -38,78 +41,78 @@
         {% if joined_count < 2 %}<p class="mt-4 text-xs text-muted">The game starts after both players join and are ready.</p>{% endif %}
       </div>
     {% elif game.phase == 'feedback' %}
-      <div class="mb-8 flex items-center justify-between font-mono text-[11px] uppercase tracking-[.18em] text-muted"><span>Round {{ round_number }} / {{ total_rounds }}</span><span>Round complete</span></div>
-      <p class="font-mono text-xs uppercase tracking-[.18em] text-lime">Answer reveal</p>
-      <h1 id="question-title" class="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">{{ question.text }}</h1>
-      <p class="mt-4 text-sm text-muted">Correct answer: <span class="font-bold text-lime">{{ game.correct_text }}</span></p>
-      <div class="mt-8 divide-y divide-white/10 border-y border-white/10">
+      <div class="mb-7 flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[.16em] text-muted"><span>Round {{ round_number }} <span class="text-white/20">/</span> {{ total_rounds }}</span><span class="rounded-full border border-lime/20 bg-lime/10 px-3 py-1.5 text-lime">Round complete</span></div>
+      <p class="eyebrow">Answer reveal</p>
+      <h1 id="question-title" class="mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">{{ question.text }}</h1>
+      <p class="surface-soft mt-5 inline-flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-muted">Correct answer: <span class="font-bold text-lime">{{ game.correct_text }}</span></p>
+      <div class="mt-6 space-y-2">
         {% for answer in game.feedback %}
-          <div class="flex flex-wrap items-center gap-3 py-4 sm:gap-5 {% if answer.correct %}answer-correct rounded-md px-3{% endif %}">
+          <div class="surface-soft flex flex-wrap items-center gap-3 px-4 py-4 sm:gap-5 {% if answer.correct %}answer-correct border-lime/20{% endif %}">
             <span class="min-w-28 flex-1 font-bold">{{ answer.player }}</span>
             <span class="font-mono text-xs text-muted">{{ answer.choice or '--' }}{% if answer.answer_text %} · {{ answer.answer_text }}{% endif %}{% if answer.timed_out %} / TIME{% endif %}</span>
-            {% if answer.correct %}<span class="correct-answer-badge font-mono text-xs text-lime">✓ CORRECT +{{ answer.score_earned }}</span>
-            {% else %}<span class="font-mono text-xs text-coral">{{ 'TOO SLOW' if answer.timed_out else 'NOT THIS TIME' }}</span>{% endif %}
-            <span class="w-16 text-right font-mono text-xs text-paper">{{ game.scores[answer.player] }} PTS</span>
+            {% if answer.correct %}<span class="correct-answer-badge rounded-full bg-lime/10 px-3 py-1.5 font-mono text-[10px] text-lime">✓ CORRECT +{{ answer.score_earned }}</span>
+            {% else %}<span class="rounded-full bg-coral/10 px-3 py-1.5 font-mono text-[10px] text-coral">{{ 'TOO SLOW' if answer.timed_out else 'NOT THIS TIME' }}</span>{% endif %}
+            <span class="score-chip font-mono text-[10px] text-paper">{{ game.scores[answer.player] }} PTS</span>
           </div>
         {% endfor %}
       </div>
       <form action="{{ url_for('continue_game') }}" method="post" class="mt-8">
         {% if player_ready %}
-          <div class="rounded-md border border-line px-5 py-4 text-sm text-muted" role="status">You’re ready. Waiting for the other player ({{ ready_count }}/2).</div>
+          <div class="surface-soft flex items-center gap-3 px-4 py-4 text-sm text-muted" role="status"><span class="h-2 w-2 rounded-full bg-lime shadow-[0_0_12px_#d3f27a]"></span><span>You’re ready. Waiting for the other player ({{ ready_count }}/2).</span></div>
         {% else %}
-          <button class="group flex w-full items-center justify-between rounded-md bg-lime px-5 py-4 text-left font-extrabold text-ink transition hover:bg-paper sm:w-auto sm:min-w-64" type="submit">
+          <button class="action-button group flex w-full items-center justify-between px-5 py-4 text-left font-extrabold sm:w-auto sm:min-w-64" type="submit">
             <span>{{ 'Finish match' if round_number == total_rounds else 'Next question' }}</span><span class="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span>
           </button>
         {% endif %}
       </form>
     {% else %}
-      <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div class="font-mono text-[11px] uppercase tracking-[.18em] text-muted">Question <span class="text-paper">{{ '%02d'|format(round_number) }}</span> / {{ '%02d'|format(total_rounds) }}</div>
-        <div class="flex gap-5">
-          {% for player in game.players %}<div class="text-right"><p class="font-mono text-[10px] uppercase text-muted">{{ player }}</p><p class="mt-1 text-sm font-bold">{{ game.scores[player] }} <span class="text-xs font-normal text-muted">pts</span></p></div>{% endfor %}
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div><p class="eyebrow">Question {{ '%02d'|format(round_number) }} <span class="text-muted/60">/</span> {{ '%02d'|format(total_rounds) }}</p><p class="mt-2 text-xs text-muted">Take your time, but not too much.</p></div>
+        <div class="flex gap-2">
+          {% for player in game.players %}<div class="score-chip text-right"><p class="truncate font-mono text-[9px] uppercase text-muted">{{ player }}</p><p class="mt-1 text-sm font-bold text-paper">{{ game.scores[player] }} <span class="text-[10px] font-normal text-muted">pts</span></p></div>{% endfor %}
         </div>
       </div>
-      <div class="mb-8 h-1 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full bg-lime transition-all" style="width: {{ (round_number / total_rounds * 100)|round|int }}%"></div></div>
-      <div class="border-y border-white/10 py-8 sm:py-10">
+      <div class="mb-7 h-1.5 overflow-hidden rounded-full bg-white/[.07]"><div class="h-full rounded-full bg-lime transition-all" style="width: {{ (round_number / total_rounds * 100)|round|int }}%"></div></div>
+      <div class="surface-soft p-5 sm:p-7">
         <div class="flex flex-wrap items-center gap-3">
-          <span class="rounded-sm bg-lime px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">{{ game.players[game.active_player] }}'s turn</span>
-          {% if your_turn %}<span class="font-mono text-xs text-muted"><span id="time-remaining">{{ time_limit }}</span> SEC</span>{% endif %}
+          <span class="rounded-full border border-lime/20 bg-lime/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-lime">{{ game.players[game.active_player] }}'s turn</span>
+          {% if your_turn %}<span class="ml-auto flex items-center gap-2 font-mono text-xs text-muted"><span class="h-1.5 w-1.5 rounded-full bg-lime"></span><span id="time-remaining">{{ time_limit }}</span> SEC</span>{% endif %}
         </div>
         {% if your_turn %}
-          <h1 id="question-title" class="mt-6 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">{{ question.text }}</h1>
-          <form action="{{ url_for('submit_answer') }}" method="post" class="mt-8" id="answer-form">
+          <h1 id="question-title" class="mt-5 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:mt-7 sm:text-5xl">{{ question.text }}</h1>
+          <form action="{{ url_for('submit_answer') }}" method="post" class="mt-7" id="answer-form">
             <fieldset>
               <legend class="sr-only">Choose an answer</legend>
-              <div class="grid gap-3 sm:grid-cols-2">
+              <div class="grid gap-2.5 sm:grid-cols-2">
                 {% for option in question.options %}
                   {% set letter = 'ABCD'[loop.index0] %}
-                  <label class="group flex min-h-16 cursor-pointer items-center gap-4 rounded-md border border-line bg-panel px-4 py-3 transition hover:border-lime/70 has-[:checked]:border-lime has-[:checked]:bg-lime/10">
+                  <label class="option-card group flex min-h-[4.25rem] cursor-pointer items-center gap-4 px-4 py-3">
                     <input type="radio" name="choice" value="{{ letter }}" required class="sr-only" />
-                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded border border-line font-mono text-xs text-muted transition group-has-[:checked]:border-lime group-has-[:checked]:bg-lime group-has-[:checked]:text-ink">{{ letter }}</span>
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[.03] font-mono text-xs text-muted transition group-has-[:checked]:border-lime group-has-[:checked]:bg-lime group-has-[:checked]:text-ink">{{ letter }}</span>
                     <span class="text-sm font-semibold">{{ option }}</span>
                   </label>
                 {% endfor %}
               </div>
             </fieldset>
-            <button id="answer-submit" class="group mt-6 flex min-w-52 items-center justify-between rounded-md bg-lime px-5 py-3.5 text-left text-sm font-extrabold text-ink transition hover:bg-paper" type="submit"><span>Lock in answer</span><span aria-hidden="true">&#8594;</span></button>
+            <button id="answer-submit" class="action-button group mt-5 flex min-w-52 items-center justify-between px-5 py-3.5 text-left text-sm font-extrabold disabled:cursor-wait disabled:opacity-60" type="submit"><span>Lock in answer</span><span aria-hidden="true">&#8594;</span></button>
           </form>
         {% else %}
-          <div class="mt-8 border-l-2 border-line py-2 pl-4 text-sm text-muted">Waiting for {{ game.players[game.active_player] }} to answer. You can message them while you wait.</div>
+          <div class="surface-soft mt-8 flex items-start gap-3 p-4 text-sm leading-6 text-muted"><span class="mt-1 h-2 w-2 shrink-0 animate-pulse rounded-full bg-lime"></span><span>Waiting for {{ game.players[game.active_player] }} to answer. You can message them while you wait.</span></div>
         {% endif %}
       </div>
     {% endif %}
   </section>
 
-  <aside class="rise overflow-hidden rounded-md border border-line bg-panel" aria-labelledby="chat-title" style="animation-delay: .08s">
-    <div class="flex items-center justify-between border-b border-line px-4 py-4">
-      <div><h2 id="chat-title" class="text-sm font-extrabold">Match chat</h2><p class="mt-1 text-[10px] text-muted">{{ game.players[0] }} &middot; {{ game.players[1] or 'Waiting for player two' }}</p></div>
-      <span class="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-lime"><span class="h-1.5 w-1.5 rounded-full bg-lime"></span> Live</span>
+  <aside class="chat-shell rise overflow-hidden" aria-labelledby="chat-title" style="animation-delay: .08s">
+    <div class="flex items-center justify-between border-b border-white/10 px-4 py-4">
+      <div><h2 id="chat-title" class="text-sm font-extrabold">Match chat</h2><p class="mt-1 max-w-48 truncate text-[10px] text-muted">{{ game.players[0] }} &middot; {{ game.players[1] or 'Waiting for player two' }}</p></div>
+      <span class="flex items-center gap-2 rounded-full border border-lime/15 bg-lime/[.06] px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wider text-lime"><span class="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_8px_#d3f27a]"></span> Live</span>
     </div>
-    <div id="chat-messages" class="flex h-72 flex-col gap-3 overflow-y-auto px-4 py-4" role="log" aria-live="polite" aria-relevant="additions"></div>
-    <form id="chat-form" class="flex gap-2 border-t border-line p-3">
+    <div id="chat-messages" class="flex h-64 flex-col gap-2.5 overflow-y-auto px-3 py-4 sm:h-72 sm:px-4" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form id="chat-form" class="flex gap-2 border-t border-white/10 p-3">
       <label class="sr-only" for="chat-input">Message</label>
-      <input id="chat-input" maxlength="500" autocomplete="off" placeholder="Write a message..." class="min-w-0 flex-1 rounded border border-line bg-ink px-3 py-2.5 text-xs text-paper outline-none placeholder:text-muted/60 focus:border-lime" />
-      <button type="submit" aria-label="Send message" title="Send message" class="grid h-10 w-10 shrink-0 place-items-center rounded bg-lime text-ink transition hover:bg-paper"><span aria-hidden="true">&#8594;</span></button>
+      <input id="chat-input" maxlength="500" autocomplete="off" placeholder="Write a message..." class="text-input min-w-0 flex-1 px-3 py-2.5 text-xs placeholder:text-muted/60" />
+      <button type="submit" aria-label="Send message" title="Send message" class="action-button grid h-11 w-11 shrink-0 place-items-center rounded-lg font-bold text-ink"><span aria-hidden="true">&#8594;</span></button>
     </form>
   </aside>
 </div>
@@ -124,7 +127,7 @@
 
     function showMessage(message) {
       const wrapper = document.createElement('div');
-      wrapper.className = 'max-w-[90%] rounded-md border border-line bg-ink px-3 py-2';
+      wrapper.className = 'chat-bubble';
       const metadata = document.createElement('p');
       metadata.className = 'font-mono text-[9px] text-muted';
       metadata.textContent = `${message.sender} / ${message.time}`;

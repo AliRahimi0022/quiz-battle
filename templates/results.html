@@ -1,22 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Quiz Club / Final score{% endblock %}
 {% block content %}
-<section class="rise mx-auto max-w-3xl" aria-labelledby="results-title">
-  <p class="font-mono text-[11px] uppercase tracking-[.2em] text-lime">Match complete</p>
-  {% if winner %}
-    <h1 id="results-title" class="mt-4 text-5xl font-extrabold leading-tight sm:text-7xl"><span class="text-lime">{{ winner }}</span><br>takes the crown.</h1>
-  {% else %}
-    <h1 id="results-title" class="mt-4 text-5xl font-extrabold leading-tight sm:text-7xl">A perfect<br><span class="text-lime">dead heat.</span></h1>
-  {% endif %}
-  <div class="mt-10 grid grid-cols-2 border-y border-white/10">
-    {% for player in game.players %}
-      <div class="py-6 {% if not loop.first %}border-l border-white/10 pl-6 sm:pl-10{% endif %}">
-        <p class="text-sm font-bold text-muted">{{ player }}</p>
-        <p class="mt-2 font-mono text-5xl text-paper sm:text-6xl">{{ game.scores[player] }}</p>
-        <p class="mt-2 font-mono text-[10px] uppercase tracking-[.16em] text-muted">points</p>
+<section class="rise mx-auto max-w-4xl py-2 sm:py-8" aria-labelledby="results-title">
+  <div class="surface relative overflow-hidden p-6 sm:p-10 lg:p-12">
+    <div class="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full border border-lime/10 bg-lime/[.035]"></div>
+    <div class="relative">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <p class="eyebrow">Match complete</p>
+        <span class="rounded-full border border-white/10 bg-white/[.03] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.13em] text-muted">Final scores</span>
       </div>
-    {% endfor %}
+      {% if winner %}
+        <h1 id="results-title" class="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl"><span class="text-lime">{{ winner }}</span><br>takes the crown.</h1>
+      {% else %}
+        <h1 id="results-title" class="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">A perfect<br><span class="text-lime">dead heat.</span></h1>
+      {% endif %}
+      <p class="mt-4 max-w-xl text-sm leading-6 text-muted">That was a good one. Here’s how the match stacked up.</p>
+
+      <div class="mt-8 grid grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4">
+        {% for player in game.players %}
+          <div class="result-score {% if player == winner %}winner-score{% endif %}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="truncate text-sm font-bold">{{ player }}</p>
+                <p class="mt-1 font-mono text-[10px] uppercase tracking-[.14em] text-muted">{% if player == winner %}Match winner{% elif not winner %}Even match{% else %}Final score{% endif %}</p>
+              </div>
+              {% if player == winner %}<span class="rounded-full bg-lime px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-ink">Winner</span>{% else %}<span class="grid h-8 w-8 place-items-center rounded-full border border-white/10 font-mono text-xs text-muted">{{ loop.index }}</span>{% endif %}
+            </div>
+            <p class="mt-6 font-mono text-5xl font-medium tracking-tight sm:text-6xl">{{ game.scores[player] }}</p>
+            <p class="mt-1 font-mono text-[10px] uppercase tracking-[.16em] text-muted">points</p>
+          </div>
+        {% endfor %}
+      </div>
+      <a href="{{ url_for('index') }}" class="action-button group mt-7 inline-flex min-w-56 items-center justify-between gap-8 px-5 py-4 text-sm font-extrabold sm:mt-8"><span>Play again</span><span class="transition-transform group-hover:translate-x-1" aria-hidden="true">&#8594;</span></a>
+    </div>
   </div>
-  <a href="{{ url_for('index') }}" class="group mt-8 inline-flex min-w-60 items-center justify-between rounded-md bg-lime px-5 py-4 text-sm font-extrabold text-ink transition hover:bg-paper"><span>Play again</span><span aria-hidden="true">&#8594;</span></a>
 </section>
 {% endblock %}
