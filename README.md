@@ -1,5 +1,7 @@
 # Quiz Club
 
+[فارسی](READMEFA.md)
+
 A two-player quiz you run locally. One person creates a room, shares the invite link, and both players take turns answering the same questions. A correct answer is worth 10 points, with 3 extra points for answering in the first half of the 30-second turn.
 
 ## Requirements
