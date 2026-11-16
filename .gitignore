@@ -8,3 +8,4 @@ __pycache__
 .venv/
 leaderboard.json
 quiz.db
+.env
