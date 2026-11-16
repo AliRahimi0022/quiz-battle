@@ -1,5 +1,6 @@
 from datetime import datetime
 import sqlite3
+from pathlib import Path
 from fastapi.testclient import TestClient
 
 import pytest
@@ -19,11 +20,22 @@ def make_client(tmp_path):
     return TestClient(app, follow_redirects=False)
 
 
-def make_lobby(tmp_path, host_name="Ada", guest_name="Lin"):
+def make_lobby(
+    tmp_path,
+    host_name="Ada",
+    guest_name="Lin",
+    coach_generator=None,
+    gemini_api_key="",
+):
     app = create_app(
-        {"TESTING": True, "SECRET_KEY": "test-secret", "GEMINI_API_KEY": ""},
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "GEMINI_API_KEY": gemini_api_key,
+        },
         leaderboard_path=tmp_path / "leaderboard.json",
         database_path=tmp_path / "answers.sqlite3",
+        coach_generator=coach_generator,
     )
     host = TestClient(app, follow_redirects=False)
     guest = TestClient(app, follow_redirects=False)
@@ -202,6 +214,139 @@ def test_chat_is_shared_live_between_player_sessions(tmp_path):
     reply = host.get("/api/chat?after=1").json()["messages"]
     assert reply[0]["sender"] == "Lin"
     assert reply[0]["text"] == "Let's play"
+
+
+def test_round_coach_requires_player_name_and_uses_only_current_round_context(
+    tmp_path, monkeypatch
+):
+    now = [100.0]
+    monkeypatch.setattr("app.time.monotonic", lambda: now[0])
+    calls = []
+
+    async def coach(api_key, *, context, player_name, question, model):
+        calls.append((api_key, context, player_name, question, model))
+        return "Your answer was correct."
+
+    host, guest, match_code = make_lobby(
+        tmp_path, coach_generator=coach, gemini_api_key="test-gemini-key"
+    )
+    game_data = host.app.state.quiz_games[match_code]
+    question = game_data["questions"][0]
+
+    assert b'id="coach-panel"' not in host.get("/game").content
+    assert host.post("/api/coach/name", json={"name": "Ada"}).status_code == 409
+
+    host.post("/ready")
+    guest.post("/ready")
+    host.post("/answer", data={"choice": question["correct"]})
+    wrong_choice = "A" if question["correct"] != "A" else "B"
+    guest.post("/answer", data={"choice": wrong_choice})
+
+    page = host.get("/game").content
+    assert b'id="coach-panel"' in page
+    assert page.index(b'id="coach-panel"') < page.index(
+        b'\n  </section>\n\n  <aside'
+    )
+    assert b'id="coach-panel"' in guest.get("/game").content
+    assert b'id="coach-name-form"' in page
+    assert b'id="coach-question-form"' in page
+    assert host.post("/api/coach/name", json={"name": "Lin"}).status_code == 400
+    assert host.post("/api/coach/name", json={"name": "Ada"}).json() == {
+        "name": "Ada"
+    }
+
+    response = host.post(
+        "/api/coach",
+        json={"name": "Ada", "question": "Why was my answer correct?"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"answer": "Your answer was correct."}
+    api_key, context, player_name, prompt, model = calls[0]
+    assert api_key == "test-gemini-key"
+    assert player_name == "Ada"
+    assert prompt == "Why was my answer correct?"
+    assert model == "gemini-3.5-flash-lite"
+    assert context == {
+        "question": {
+            "text": question["text"],
+            "options": question["options"],
+            "correct_answer": question["options"][ord(question["correct"]) - ord("A")],
+        },
+        "players": [
+            {
+                "name": "Ada",
+                "answer": question["options"][ord(question["correct"]) - ord("A")],
+                "correct": True,
+                "points_earned": 13,
+                "total_score": 13,
+            },
+            {
+                "name": "Lin",
+                "answer": question["options"][ord(wrong_choice) - ord("A")],
+                "correct": False,
+                "points_earned": 0,
+                "total_score": 0,
+            },
+        ],
+    }
+
+
+def test_round_coach_reports_missing_api_key(tmp_path):
+    host, guest = make_two_players(tmp_path)
+    game_data = host.app.state.quiz_games[next(iter(host.app.state.quiz_games))]
+    question = game_data["questions"][0]
+    host.post("/answer", data={"choice": question["correct"]})
+    guest.post("/answer", data={"choice": question["correct"]})
+
+    response = host.post(
+        "/api/coach",
+        json={"name": "Ada", "question": "How did I do?"},
+    )
+
+    assert response.status_code == 503
+    assert "GEMINI_API_KEY" in response.json()["error"]
+
+
+def test_app_loads_gemini_key_from_dotenv(tmp_path, monkeypatch):
+    import app as app_module
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text("GEMINI_API_KEY=dotenv-test-key\n")
+    monkeypatch.setattr(app_module, "DOTENV_PATH", dotenv_path)
+    question_path = Path(__file__).resolve().parents[1] / "questions.json"
+    calls = []
+
+    async def coach(api_key, *, context, player_name, question, model):
+        calls.append(api_key)
+        return "Ready."
+
+    app = create_app(
+        {"TESTING": True, "SECRET_KEY": "test-secret"},
+        question_path=question_path,
+        leaderboard_path=tmp_path / "leaderboard.json",
+        database_path=tmp_path / "answers.sqlite3",
+        coach_generator=coach,
+    )
+    host = TestClient(app, follow_redirects=False)
+    guest = TestClient(app, follow_redirects=False)
+    host.post("/start", data={"player_name": "Ada"})
+    match_code = next(iter(app.state.quiz_games))
+    guest.get(f"/join/{match_code}")
+    guest.post(f"/join/{match_code}", data={"player_name": "Lin"})
+    host.post("/ready")
+    guest.post("/ready")
+    host.post("/answer", data={"choice": "A"})
+    guest.post("/answer", data={"choice": "A"})
+
+    response = host.post(
+        "/api/coach",
+        json={"name": "Ada", "question": "How did I do?"},
+    )
+
+    assert response.status_code == 200
+    assert calls == ["dotenv-test-key"]
 
 
 def test_server_clock_tracks_elapsed_and_expires_turn(tmp_path, monkeypatch):

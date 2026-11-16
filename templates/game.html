@@ -56,6 +56,22 @@
           </div>
         {% endfor %}
       </div>
+      <section id="coach-panel" class="surface-soft mt-7 border border-lime/15 bg-lime/[.03] p-5 sm:p-6" aria-labelledby="coach-title">
+        <p class="eyebrow">Round assistant</p>
+        <h2 id="coach-title" class="mt-2 text-base font-extrabold">Ask your quiz coach</h2>
+        <p id="coach-status" class="mt-2 text-xs leading-5 text-muted" role="status">First, tell the coach your player name.</p>
+        <form id="coach-name-form" class="mt-3 flex flex-col gap-2 sm:flex-row">
+          <label for="coach-name-input" class="sr-only">Your player name</label>
+          <input id="coach-name-input" maxlength="24" autocomplete="name" required placeholder="Your player name" class="text-input min-w-0 flex-1 px-3 py-2.5 text-xs placeholder:text-muted/60" />
+          <button type="submit" class="action-button px-4 py-2.5 text-xs font-bold">Continue</button>
+        </form>
+        <form id="coach-question-form" class="hidden mt-3 flex-col gap-2 sm:flex-row">
+          <label for="coach-question-input" class="sr-only">Ask about this round</label>
+          <textarea id="coach-question-input" maxlength="500" required rows="2" placeholder="Ask about your answer or score..." class="text-input min-w-0 flex-1 resize-y px-3 py-2.5 text-xs placeholder:text-muted/60"></textarea>
+          <button id="coach-question-submit" type="submit" class="action-button px-4 py-2.5 text-xs font-bold">Ask coach</button>
+        </form>
+        <div id="coach-answers" class="mt-3 space-y-2" role="log" aria-live="polite"></div>
+      </section>
       <form action="{{ url_for('continue_game') }}" method="post" class="mt-8">
         {% if player_ready %}
           <div class="surface-soft flex items-center gap-3 px-4 py-4 text-sm text-muted" role="status"><span class="h-2 w-2 rounded-full bg-lime shadow-[0_0_12px_#d3f27a]"></span><span>You’re ready. Waiting for the other player ({{ ready_count }}/2).</span></div>
@@ -123,6 +139,10 @@
     const messages = document.getElementById('chat-messages');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
+    const coachNameForm = document.getElementById('coach-name-form');
+    const coachQuestionForm = document.getElementById('coach-question-form');
+    const coachStatus = document.getElementById('coach-status');
+    const coachAnswers = document.getElementById('coach-answers');
     let lastMessageId = 0;
 
     function showMessage(message) {
@@ -182,6 +202,71 @@
     pollMessages();
     window.setInterval(pollMessages, 800);
     window.setInterval(pollGameState, 800);
+
+    if (coachNameForm && coachQuestionForm) {
+      let coachPlayerName = '';
+      const coachNameInput = document.getElementById('coach-name-input');
+      const coachQuestionInput = document.getElementById('coach-question-input');
+      const coachQuestionSubmit = document.getElementById('coach-question-submit');
+
+      coachNameForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const name = coachNameInput.value.trim();
+        if (!name) return;
+        coachStatus.textContent = 'Checking your name...';
+        try {
+          const response = await fetch('/api/coach/name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Could not verify your name.');
+          coachPlayerName = payload.name;
+          coachNameForm.classList.add('hidden');
+          coachQuestionForm.classList.remove('hidden');
+          coachStatus.textContent = `Welcome, ${coachPlayerName}. Ask about this round.`;
+          coachQuestionInput.focus();
+        } catch (error) {
+          coachStatus.textContent = error.message;
+        }
+      });
+
+      coachQuestionForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = coachQuestionInput.value.trim();
+        if (!question) return;
+        coachQuestionSubmit.disabled = true;
+        coachStatus.textContent = 'The coach is thinking...';
+        try {
+          const response = await fetch('/api/coach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: coachPlayerName, question })
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'The coach could not respond.');
+
+          const exchange = document.createElement('div');
+          exchange.className = 'surface-soft p-3 text-xs leading-5';
+          const asked = document.createElement('p');
+          asked.className = 'font-semibold text-muted';
+          asked.textContent = `${coachPlayerName}: ${question}`;
+          const answer = document.createElement('p');
+          answer.className = 'mt-2 break-words text-paper';
+          answer.textContent = payload.answer;
+          exchange.append(asked, answer);
+          coachAnswers.append(exchange);
+          coachQuestionInput.value = '';
+          coachStatus.textContent = 'Ask another question about this round.';
+        } catch (error) {
+          coachStatus.textContent = error.message;
+        } finally {
+          coachQuestionSubmit.disabled = false;
+          coachQuestionInput.focus();
+        }
+      });
+    }
 
     const inviteButton = document.getElementById('copy-invite');
     if (inviteButton) {

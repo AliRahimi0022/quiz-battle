@@ -9,11 +9,13 @@ from pathlib import Path
 from threading import RLock
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from coach import CoachGenerationError, generate_coach_response
 from engine import Match, POINTS, Question, ROUNDS, SPEED_BONUS, TIME_LIMIT
 from question_generation import (
     GEMINI_MODEL,
@@ -22,6 +24,8 @@ from question_generation import (
 )
 from storage import AnswerStore, QuestionBank, ScoreBoard
 
+DOTENV_PATH = Path(__file__).with_name(".env")
+
 
 def create_app(
     test_config=None,
@@ -29,7 +33,9 @@ def create_app(
     leaderboard_path=None,
     database_path=None,
     question_generator=None,
+    coach_generator=None,
 ):
+    load_dotenv(DOTENV_PATH, override=False)
     config = {
         "SECRET_KEY": os.environ.get("SECRET_KEY", "local-quiz-game-key-change-me"),
         "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY"),
@@ -54,6 +60,7 @@ def create_app(
     )
     answer_store = AnswerStore(database_path or Path(__file__).with_name("quiz.db"))
     question_generator = question_generator or generate_questions
+    coach_generator = coach_generator or generate_coach_response
     games = {}
     games_lock = RLock()
     app.state.quiz_games = games
@@ -472,6 +479,121 @@ def create_app(
             }
             game_data["chat"].append(message)
         return JSONResponse(message, status_code=201)
+
+    @app.post("/api/coach/name", name="set_coach_player_name")
+    async def set_coach_player_name(request: Request):
+        match_code, _, player_index = current_game(request)
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        player_name = body.get("name")
+        if not isinstance(player_name, str) or not player_name.strip():
+            return JSONResponse({"error": "Enter your player name."}, status_code=400)
+
+        with games_lock:
+            game_data = games[match_code]
+            if (
+                game_data["phase"] != "feedback"
+                or len(game_data["feedback"]) != len(game_data["players"])
+            ):
+                return JSONResponse(
+                    {"error": "The coach is available after both players answer."},
+                    status_code=409,
+                )
+            expected_name = game_data["players"][player_index]
+            if player_name.strip().casefold() != expected_name.casefold():
+                return JSONResponse(
+                    {"error": "Enter the name you used to join this match."},
+                    status_code=400,
+                )
+        return JSONResponse({"name": expected_name})
+
+    @app.post("/api/coach", name="ask_round_coach")
+    async def ask_round_coach(request: Request):
+        match_code, _, player_index = current_game(request)
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        player_name = body.get("name")
+        player_question = body.get("question")
+        if not isinstance(player_name, str) or not isinstance(player_question, str):
+            return JSONResponse(
+                {"error": "Enter your name and a question."}, status_code=400
+            )
+        player_name = player_name.strip()
+        player_question = player_question.strip()
+        if not player_question:
+            return JSONResponse({"error": "Question cannot be empty."}, status_code=400)
+        if len(player_question) > 500:
+            return JSONResponse(
+                {"error": "Question must be 500 characters or fewer."},
+                status_code=400,
+            )
+
+        with games_lock:
+            game_data = games[match_code]
+            if (
+                game_data["phase"] != "feedback"
+                or len(game_data["feedback"]) != len(game_data["players"])
+            ):
+                return JSONResponse(
+                    {"error": "The coach is available after both players answer."},
+                    status_code=409,
+                )
+            expected_name = game_data["players"][player_index]
+            if player_name.casefold() != expected_name.casefold():
+                return JSONResponse(
+                    {"error": "Enter the name you used to join this match."},
+                    status_code=400,
+                )
+            question_data = game_data["questions"][game_data["round_index"]]
+            context = {
+                "question": {
+                    "text": question_data["text"],
+                    "options": question_data["options"],
+                    "correct_answer": game_data["correct_text"],
+                },
+                "players": [
+                    {
+                        "name": answer["player"],
+                        "answer": answer["answer_text"] or "No answer",
+                        "correct": answer["correct"],
+                        "points_earned": answer["score_earned"],
+                        "total_score": game_data["scores"][answer["player"]],
+                    }
+                    for answer in game_data["feedback"]
+                ],
+            }
+
+        api_key = config["GEMINI_API_KEY"]
+        if not api_key:
+            return JSONResponse(
+                {"error": "The coach needs GEMINI_API_KEY to be configured."},
+                status_code=503,
+            )
+        try:
+            response_text = await coach_generator(
+                api_key,
+                context=context,
+                player_name=expected_name,
+                question=player_question,
+                model=config["GEMINI_MODEL"],
+            )
+        except CoachGenerationError as error:
+            logging.getLogger(__name__).warning(
+                "Gemini coach request failed: %s", error
+            )
+            return JSONResponse(
+                {"error": "The coach could not respond right now. Please try again."},
+                status_code=502,
+            )
+        return JSONResponse({"answer": response_text})
 
     @app.post("/continue", name="continue_game")
     async def continue_game(request: Request):
