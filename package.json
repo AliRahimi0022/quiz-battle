@@ -1,0 +1,28 @@
+{
+  "name": "quiz-battle",
+  "version": "1.0.0",
+  "description": "[فارسی](READMEFA.md)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AliRahimi0022/quiz-battle.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AliRahimi0022/quiz-battle/issues"
+  },
+  "homepage": "https://github.com/AliRahimi0022/quiz-battle#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6"
+  }
+}

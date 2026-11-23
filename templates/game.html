@@ -105,7 +105,7 @@
                   <label class="option-card group flex min-h-[4.25rem] cursor-pointer items-center gap-4 px-4 py-3">
                     <input type="radio" name="choice" value="{{ letter }}" required class="sr-only" />
                     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[.03] font-mono text-xs text-muted transition group-has-[:checked]:border-lime group-has-[:checked]:bg-lime group-has-[:checked]:text-ink">{{ letter }}</span>
-                    <span class="text-sm font-semibold">{{ option }}</span>
+                    <span class="min-w-0 break-words text-sm font-semibold">{{ option }}</span>
                   </label>
                 {% endfor %}
               </div>
@@ -250,7 +250,7 @@
           const exchange = document.createElement('div');
           exchange.className = 'surface-soft p-3 text-xs leading-5';
           const asked = document.createElement('p');
-          asked.className = 'font-semibold text-muted';
+          asked.className = 'break-words font-semibold text-muted';
           asked.textContent = `${coachPlayerName}: ${question}`;
           const answer = document.createElement('p');
           answer.className = 'mt-2 break-words text-paper';

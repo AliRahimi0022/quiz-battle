@@ -94,3 +94,15 @@ Active rooms live in memory and disappear when the process stops. Finished match
 ```bash
 pytest
 ```
+
+## Browser tests
+
+With the Python environment set up, install the Node.js dependencies and Chromium, then run the Playwright end-to-end test:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The test uses temporary storage and mock question and coach generators, so it does not need a Gemini API key or modify the app's local data.

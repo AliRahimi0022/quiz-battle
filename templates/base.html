@@ -54,6 +54,9 @@
       font-size: .8rem; font-weight: 900; letter-spacing: -.08em;
     }
     .site-main { min-height: calc(100vh - 10.5rem); }
+    @supports (height: 100dvh) {
+      .site-main { min-height: calc(100dvh - 10.5rem); }
+    }
     .site-footer { color: #788172; border-color: var(--line); }
     .eyebrow {
       display: inline-flex; align-items: center; gap: .55rem; color: var(--lime);
@@ -181,6 +184,11 @@
     @media (max-width: 640px) {
       .hero-orb { top: -2rem; right: 0; width: 11rem; opacity: .7; }
       .site-footer { gap: .75rem; flex-wrap: wrap; }
+      .brand-mark { width: 2.75rem; height: 2.75rem; }
+      input.text-input, textarea.text-input { font-size: 1rem; }
+    }
+    @media (max-width: 379px) {
+      .site-header .brand-tagline { display: none; }
     }
   </style>
 </head>
@@ -190,9 +198,9 @@
     <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
       <a href="{{ url_for('index') }}" class="flex items-center gap-3" aria-label="Quiz Club home">
         <span class="brand-mark">Q.</span>
-        <span><span class="block text-sm font-extrabold tracking-[.13em]">QUIZ CLUB</span><span class="mt-0.5 block font-mono text-[9px] uppercase tracking-[.17em] text-muted">Think fast. Play fair.</span></span>
+        <span><span class="block text-sm font-extrabold tracking-[.13em]">QUIZ CLUB</span><span class="brand-tagline mt-0.5 block font-mono text-[9px] uppercase tracking-[.17em] text-muted">Think fast. Play fair.</span></span>
       </a>
-      <span class="surface-soft inline-flex items-center gap-2 rounded-full px-3 py-2 font-mono text-[9px] uppercase tracking-[.13em] text-muted sm:px-4 sm:text-[10px]"><span class="h-1.5 w-1.5 rounded-full bg-lime shadow-[0_0_10px_#d3f27a]"></span><span class="hidden min-[380px]:inline">Local multiplayer</span><span class="min-[380px]:hidden">2 players</span><span class="hidden min-[380px]:inline">/ 02 players</span></span>
+      <span class="surface-soft inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 font-mono text-[9px] uppercase tracking-[.13em] text-muted sm:px-4 sm:text-[10px]"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-lime shadow-[0_0_10px_#d3f27a]"></span><span class="hidden min-[380px]:inline">Local multiplayer</span><span class="min-[380px]:hidden">2 players</span><span class="hidden min-[380px]:inline">/ 02 players</span></span>
     </div>
   </header>
   <main class="site-main relative z-[1] mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
